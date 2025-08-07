@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese AI Tutor Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .level-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px 30px;
+            font-size: 12px;
+            color: #666;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+
+        .status-dot.error {
+            background: #dc3545;
+        }
+
+        .status-dot.loading {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 0;
+            background: white;
+        }
+
+        .message {
+            padding: 20px 30px;
+            border-bottom: 1px solid #f0f0f0;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-left: 4px solid #667eea;
+        }
+
+        .message.assistant {
+            background: white;
+            border-left: 4px solid #28a745;
+        }
+
+        .message.error {
+            background: #fff5f5;
+            border-left: 4px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .message-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .message-content {
+            line-height: 1.6;
+            color: #555;
+            white-space: pre-wrap;
+            font-feature-settings: "kern" 1, "liga" 1;
+            /* Better Japanese text rendering */
+        }
+
+        .japanese-text {
+            font-family: 'Noto Sans JP', -apple-system, sans-serif;
+            font-weight: 500;
+            font-size: 1.1em;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .suggestions {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .suggestions h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .suggestion-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-btn {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #999;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .input-area {
+                min-width: auto;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇯🇵 Japanese AI Tutor</h1>
+            <p>Learn Japanese with AI-powered assistance</p>
+        </div>
+        
+        <div class="controls">
+            <select id="level" class="level-select">
+                <option value="beginner">🌱 Beginner (N5)</option>
+                <option value="elementary">📚 Elementary (N4)</option>
+                <option value="intermediate">⚡ Intermediate (N3)</option>
+                <option value="advanced">🎯 Advanced (N2-N1)</option>
+            </select>
+            
+            <div class="input-area">
+                <input type="text" id="messageInput" class="message-input" 
+                       placeholder="Ask about Japanese grammar, vocabulary, or culture...">
+                <button onclick="sendMessage()" class="send-btn" id="sendBtn">Send</button>
+            </div>
+        </div>
+        
+        <div class="status" id="status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Initializing...</span>
+            </div>
+            <div id="statusDetails"></div>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="empty-state">
+                <h3>Welcome to your Japanese learning journey!</h3>
+                <p>Ask me anything about Japanese grammar, vocabulary, culture, or practice conversations.</p>
+            </div>
+        </div>
+
+        <div class="suggestions">
+            <h4>💡 Try asking about:</h4>
+            <div class="suggestion-buttons">
+                <button class="suggestion-btn" onclick="quickSend('How do I introduce myself in Japanese?')">Self-introduction</button>
+                <button class="suggestion-btn" onclick="quickSend('What is the difference between は and が?')">Particles は vs が</button>
+                <button class="suggestion-btn" onclick="quickSend('How do I count in Japanese?')">Numbers & Counting</button>
+                <button class="suggestion-btn" onclick="quickSend('What are the most common Japanese greetings?')">Greetings</button>
+                <button class="suggestion-btn" onclick="quickSend('How do Japanese verb tenses work?')">Verb Tenses</button>
+                <button class="suggestion-btn" onclick="quickSend('Tell me about Japanese writing systems')">Writing Systems</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const level = document.getElementById('level').value;
+            
+            if (!input.value.trim() || isLoading) return;
+
+            const userMessage = input.value.trim();
+            input.value = '';
+            
+            addMessage(userMessage, 'user');
+            setLoading(true);
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        level: level,
+                        context: {}
+                    })
+                });
+
+                const data = await response.json();
+                const totalTime = Date.now() - startTime;
+                
+                if (response.ok) {
+                    addMessage(data.response, 'assistant', {
+                        model: data.model,
+                        processing_time: data.processing_time,
+                        total_time: totalTime,
+                        level: data.level,
+                        rag_sources: data.rag_sources || []
+                    });
+                    updateStatus('ready', `Response: ${totalTime}ms (${data.processing_time}ms processing)`);
+                } else {
+                    addMessage(data.error || 'An error occurred', 'error');
+                    updateStatus('error', data.error || 'Request failed');
+                }
+            } catch (error) {
+                addMessage(`Connection error: ${error.message}`, 'error');
+                updateStatus('error', 'Failed to connect to server');
+            }
+            
+            setLoading(false);
+        }
+
+        function quickSend(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function addMessage(content, type, meta = {}) {
+            const chat = document.getElementById('chatContainer');
+            const emptyState = chat.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const headers = {
+                user: '👤 You',
+                assistant: '🤖 Japanese Tutor',
+                error: '❌ Error'
+            };
+            
+            let metaInfo = '';
+            if (meta.processing_time) {
+                metaInfo = `Model: ${meta.model} | Processing: ${meta.processing_time}ms | Level: ${meta.level}`;
+                if (meta.rag_sources && meta.rag_sources.length > 0) {
+                    metaInfo += ` | Sources: ${meta.rag_sources.map(s => s.title).join(', ')}`;
+                }
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">${headers[type]}</div>
+                <div class="message-content">${content}</div>
+                ${metaInfo ? `<div class="message-meta">${metaInfo}</div>` : ''}
+            `;
+            
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            const sendBtn = document.getElementById('sendBtn');
+            const input = document.getElementById('messageInput');
+            
+            sendBtn.disabled = loading;
+            sendBtn.textContent = loading ? 'Thinking...' : 'Send';
+            input.disabled = loading;
+            
+            updateStatus(loading ? 'loading' : 'ready', loading ? 'Generating response...' : 'Ready');
+        }
+
+        function updateStatus(state, message, details = '') {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const statusDetails = document.getElementById('statusDetails');
+            
+            statusDot.className = `status-dot ${state}`;
+            statusText.textContent = message;
+            statusDetails.textContent = details;
+        }
+
+        // Enter key support
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !isLoading) {
+                sendMessage();
+            }
+        });
+
+        // Initialize app
+        async function initialize() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    updateStatus('ready', 'Connected to Ollama', 
+                        `Model: ${data.current_model} | Available: ${data.available_models?.length || 0} models`);
+                } else {
+                    updateStatus('error', 'Ollama service issue', data.error);
+                }
+            } catch (error) {
+                updateStatus('error', 'Cannot connect to server', error.message);
+            }
+        }
+
+        // Start app
+        initialize();
+    </script>
+</body>
+</html>
