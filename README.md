@@ -8,7 +8,6 @@ I value openess and fairness, and want to provide an usefull tool for everyone. 
 ![RAG Enhanced](https://img.shields.io/badge/RAG-ChromaDB-green)
 ![Docker Ready](https://img.shields.io/badge/Docker-Ready-blue)
 ![Privacy First](https://img.shields.io/badge/Privacy-First-purple)
-![Document Gen](https://img.shields.io/badge/Documents-AI%20Generated-orange)
 
 ## 🎯 What Makes This Special?
 
