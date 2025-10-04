@@ -432,7 +432,7 @@ Create a `.env` file in the root directory:
 ```env
 # Ollama Configuration
 OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3:8b
+OLLAMA_MODEL=llama3:8b // an alternative would be this model hf.co/dahara1/gemma-3-1b-it-qat-japanese-imatrix:Q4_K_M , very easy to run and efficient and even better in some scenarios
 # Note: Any multilingual Open Weight Model will work
 
 # Google Custom Search API (Optional)
@@ -443,7 +443,7 @@ GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
 USE_CHROMADB=true
 CHROMA_DB_URL=http://localhost:8000
 CHROMA_COLLECTION_NAME=japanese_tutor_knowledge
-EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_MODEL=all-MiniLM-L6-v2 //also you can experiment with this Xenova/paraphrase-multilingual-mpnet-base-v2 , works great for non-latin languages
 MAX_CHUNK_SIZE=800
 CHUNK_OVERLAP=100
 
@@ -580,6 +580,7 @@ curl -X POST http://localhost:3000/api/orchestrator/search \
 5. AI generates and downloads a comprehensive study guide!
 
 **Example Prompts:**
+There are already suggested prompts on hoover.
 - "Create a study guide for Japanese verb conjugations"
 - "Make a reference sheet for JLPT N3 grammar points"
 - "Generate a guide about keigo (honorific language)"
@@ -748,6 +749,8 @@ ls backend/fonts/NotoSansJP-Regular.otf
 - AI document generation can take 10-30 seconds depending on complexity
 - Ensure Ollama is running with sufficient resources (8GB+ RAM recommended)
 - Check Ollama logs: `ollama serve`
+- This is still in BETA, may not work as intended all the time, and also the structure needs adjustments
+- Make sure you have a compatible Japanese Font to use in order to better display the characters
 
 ### Performance Optimization
 
