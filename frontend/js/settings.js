@@ -46,12 +46,27 @@ async function showSettings() {
                 </div>
 
                 <div class="setting-group">
-                    <h4>🔒 Privacy</h4>
+                    <h4>🔒 Privacy & Data</h4>
+                    <div class="setting-item">
+                        <label class="toggle-container">
+                            <span>Contribute to Training Data</span>
+                            <input type="checkbox" id="trainingDataToggle" ${getTrainingDataPreference() ? 'checked' : ''} onchange="toggleTrainingDataPreference()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="setting-description">
+                            <strong>Global Setting:</strong> When enabled, ALL your conversations are copied to the training folder.
+                            When disabled, all conversations are removed from training data. This helps improve the AI tutor for everyone.
+                        </p>
+                    </div>
+                    <div class="privacy-status" id="trainingDataStatus">
+                        <p>Loading training data status...</p>
+                    </div>
                     <div class="privacy-status" id="privacyStatus">
                         <p>Loading privacy status...</p>
                     </div>
                     <div class="setting-item">
                         <button class="privacy-btn" onclick="showPrivacyDetails()">View Privacy Details</button>
+                        <button class="privacy-btn" onclick="exportTrainingData()">Export Training Data</button>
                         <button class="privacy-btn" onclick="clearAllData()">Clear All Data</button>
                     </div>
                 </div>
@@ -93,6 +108,37 @@ async function showSettings() {
     // Load current settings
     await loadPrivacySettings();
     await loadSystemStatus();
+    await loadTrainingDataStats();
+}
+
+async function loadTrainingDataStats() {
+    try {
+        const response = await fetch('/api/conversations/training/stats');
+        if (response.ok) {
+            const stats = await response.json();
+            const trainingDataStatus = document.getElementById('trainingDataStatus');
+            const isEnabled = getTrainingDataPreference();
+
+            if (trainingDataStatus) {
+                trainingDataStatus.innerHTML = `
+                    <div class="privacy-indicator ${isEnabled ? 'enabled' : 'disabled'}">
+                        <strong>Training Data Status:</strong> ${isEnabled ? 'Enabled' : 'Disabled'}<br>
+                        <strong>Conversations in Training Folder:</strong> ${stats.count || 0}
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load training data stats:', error);
+        const trainingDataStatus = document.getElementById('trainingDataStatus');
+        if (trainingDataStatus) {
+            trainingDataStatus.innerHTML = `
+                <div class="privacy-indicator disabled">
+                    <strong>Training Data Status:</strong> Unable to load
+                </div>
+            `;
+        }
+    }
 }
 
 async function loadPrivacySettings() {
@@ -110,7 +156,7 @@ async function loadPrivacySettings() {
             if (privacyStatus) {
                 privacyStatus.innerHTML = `
                     <div class="privacy-indicator ${stats.enabled ? 'enabled' : 'disabled'}">
-                        <strong>Status:</strong> ${stats.enabled ? 'Enabled' : 'Disabled'}<br>
+                        <strong>History RAG Status:</strong> ${stats.enabled ? 'Enabled' : 'Disabled'}<br>
                         <strong>Data Encryption:</strong> ${stats.encryption_enabled ? 'Yes' : 'No'}<br>
                         <strong>Anonymization:</strong> ${stats.data_anonymized ? 'Yes' : 'No'}<br>
                         <strong>Indexed Conversations:</strong> ${stats.total_conversations_indexed || 0}
@@ -249,6 +295,49 @@ function showPrivacyDetails() {
 You have full control over your data and can disable this feature anytime.`);
 }
 
+async function exportTrainingData() {
+    try {
+        // First check if there is any training data
+        const statsResponse = await fetch('/api/conversations/training/stats');
+        if (!statsResponse.ok) {
+            throw new Error('Failed to check training data');
+        }
+
+        const stats = await statsResponse.json();
+        if (stats.count === 0) {
+            showNotification('No training data available to export. Enable training data contribution first.', 'warning');
+            return;
+        }
+
+        // Fetch the training data
+        const response = await fetch('/api/conversations/training/export');
+        if (!response.ok) {
+            throw new Error('Failed to export training data');
+        }
+
+        const result = await response.json();
+
+        // Create and download the JSON file
+        const dataStr = JSON.stringify(result.data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = result.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showNotification(result.message, 'success');
+
+    } catch (error) {
+        console.error('Error exporting training data:', error);
+        showNotification('Failed to export training data. Please try again.', 'error');
+    }
+}
+
 async function clearAllData() {
     const confirmed = confirm(`⚠️ Clear All Learning Data
 
@@ -286,5 +375,56 @@ function closeSettings() {
     const modal = document.querySelector('.settings-modal-overlay');
     if (modal) {
         modal.remove();
+    }
+}
+
+// Training Data Preference Management
+function getTrainingDataPreference() {
+    const preference = localStorage.getItem('trainingDataEnabled');
+    // Default to false (opt-in)
+    return preference === 'true';
+}
+
+function setTrainingDataPreference(enabled) {
+    localStorage.setItem('trainingDataEnabled', enabled.toString());
+}
+
+async function toggleTrainingDataPreference() {
+    const checkbox = document.getElementById('trainingDataToggle');
+    const enabled = checkbox.checked;
+
+    try {
+        // Sync all conversations to/from training folder
+        const response = await fetch('/api/conversations/training/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to sync training data');
+        }
+
+        const result = await response.json();
+
+        // Update local preference
+        setTrainingDataPreference(enabled);
+
+        // Reload training data stats to show updated count
+        await loadTrainingDataStats();
+
+        const message = enabled
+            ? `✅ Thank you for contributing! ${result.count} conversation(s) copied to training data.`
+            : `Training data contribution disabled. ${result.count} conversation(s) removed from training data.`;
+
+        showNotification(message, enabled ? 'success' : 'info');
+
+    } catch (error) {
+        console.error('Error toggling training data:', error);
+
+        // Revert checkbox state
+        checkbox.checked = !enabled;
+
+        showNotification('Failed to update training data settings. Please try again.', 'error');
     }
 }

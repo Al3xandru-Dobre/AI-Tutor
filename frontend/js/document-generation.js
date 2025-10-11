@@ -16,12 +16,12 @@ function exportCurrentConversation() {
  * Update header export button visibility
  */
 function updateHeaderExportButton() {
-    const headerExportBtn = document.getElementById('headerExportBtn');
-    if (headerExportBtn) {
+    const headerExportContainer = document.getElementById('headerExportContainer');
+    if (headerExportContainer) {
         if (currentConversationId) {
-            headerExportBtn.style.display = 'flex';
+            headerExportContainer.style.display = 'flex';
         } else {
-            headerExportBtn.style.display = 'none';
+            headerExportContainer.style.display = 'none';
         }
     }
 }

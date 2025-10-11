@@ -43,7 +43,7 @@ function renderHistory() {
                 <div class="history-item-date">${formatDate(conversation.createdAt)}</div>
             </div>
             <div class="history-item-actions">
-                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export conversation">
+                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export as document">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
                         <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
                     </svg>

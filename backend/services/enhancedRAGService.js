@@ -112,57 +112,75 @@ class EnhancedRAGService {
    * Initialize ChromaDB client and collection
    */
   async initializeChromaDB() {
-    try {
-      console.log(`🔗 Connecting to ChromaDB at ${this.chromaUrl}...`);
-      
-      this.chromaClient = new ChromaClient({
-        path: this.chromaUrl
-      });
-      
-      console.log('💓 Testing ChromaDB connection with timeout...');
-      const heartbeatPromise = this.chromaClient.heartbeat();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('ChromaDB connection timeout after 5 seconds')), 5000)
-      );
-      
-      const heartbeat = await Promise.race([heartbeatPromise, timeoutPromise]);
-      console.log('💚 ChromaDB heartbeat:', heartbeat);
-
-      console.log(' Initializing embedding function...');
-      this.embeddingFunction = new DefaultEmbeddingFunction();
-      console.log('✅ Embedding function initialized');
-
-
-      // Get or create collection
-      try {
-        this.collection = await this.chromaClient.getCollection({
-          name: this.collectionName,
-          embeddingFunction: this.embeddingFunction
-        });
-        console.log(`📚 Connected to existing collection: ${this.collectionName}`);
-      } catch (error) {
-        console.log(`📚 Creating new collection: ${this.collectionName}`);
-        this.collection = await this.chromaClient.createCollection({
-          name: this.collectionName,
-          embeddingFunction: this.embeddingFunction,
-          metadata: {
-            description: 'Japanese language learning content with semantic embeddings',
-            created_at: new Date().toISOString(),
-            embedding_model: this.embeddingModel,
-            hnsw_space: 'cosine'
-          }
-        });
-        console.log(`📚 New collection created: ${this.collectionName}`);
-      }
-      
-      this.chromaAvailable = true;
-      return true;
-    } catch (error) {
-      console.error('❌ ChromaDB initialization failed:', error);
-      this.chromaAvailable = false;
-      throw error;
+        try {
+            console.log(`🔗 Connecting to ChromaDB at ${this.chromaUrl}...`);
+            
+            this.chromaClient = new ChromaClient({
+                path: this.chromaUrl,
+                // Authentication dacă e configurat
+                auth: process.env.CHROMA_AUTH_TOKEN ? {
+                    provider: 'token',
+                    credentials: process.env.CHROMA_AUTH_TOKEN
+                } : undefined
+            });
+            
+            // Test connection
+            const heartbeat = await this.chromaClient.heartbeat();
+            console.log('💓 ChromaDB heartbeat:', heartbeat);
+            
+            // Configurare collection avansată
+            try {
+                this.collection = await this.chromaClient.getCollection({
+                    name: this.collectionName
+                });
+                console.log(`📚 Connected to existing collection: ${this.collectionName}`);
+            } catch (error) {
+                console.log(`📚 Creating new collection with custom config: ${this.collectionName}`);
+                
+                this.collection = await this.chromaClient.createCollection({
+                    name: this.collectionName,
+                    metadata: {
+                        description: 'Japanese language learning content with semantic embeddings',
+                        created_at: new Date().toISOString(),
+                        embedding_model: this.embeddingModel,
+                        
+                        // Configurări custom
+                        'hnsw:space': 'cosine',  // Metric de similaritate
+                        'hnsw:construction_ef': 200,  // Calitate construcție index
+                        'hnsw:search_ef': 100,  // Calitate căutare
+                        'hnsw:M': 16,  // Număr conexiuni per nod
+                        
+                        // Metadata pentru filtering
+                        'schema_version': '2.0',
+                        'language': 'japanese',
+                        'domain': 'education'
+                    },
+                    
+                    // Embedding function (dacă folosești custom)
+                    embeddingFunction: this.customEmbeddingFunction || undefined
+                });
+                
+                console.log('✅ Collection created with HNSW index configuration');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('❌ ChromaDB initialization failed:', error);
+            throw error;
+        }
     }
+  async setupCustomEmbedding() {
+    const CustomJapaneseEmbedding = require('./customEmbbedingsService');
+
+    this.customEmbeddingFunction = {
+      generate: async (texts) => {
+        const embedder = new CustomJapaneseEmbedding('./models/japanese_embedder');
+        await embedder.initialize();
+        return await embedder.embed(texts);
+      }
+    };
   }
+
 
   /**
    * Check migration status

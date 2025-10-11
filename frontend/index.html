@@ -50,14 +50,31 @@
                     </button>
                     <span class="flag">🇯🇵</span>
                     <h1>Japanese AI Tutor</h1>
-                    <button class="header-export-btn" id="headerExportBtn" onclick="exportCurrentConversation()" title="Export this conversation" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>Export</span>
-                    </button>
+                    <div class="header-export-container" id="headerExportContainer" style="display: none;">
+                        <button class="header-export-btn" id="headerExportBtn" onclick="toggleExportMenu()" title="Export this conversation">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Export</span>
+                        </button>
+                        <div class="export-dropdown" id="exportDropdown">
+                            <button class="export-dropdown-item" onclick="exportCurrentConversationJSON(); closeExportMenu();">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                    <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"></path>
+                                    <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"></path>
+                                </svg>
+                                <span>Export as JSON</span>
+                            </button>
+                            <button class="export-dropdown-item" onclick="exportCurrentConversation(); closeExportMenu();">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                    <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
+                                </svg>
+                                <span>Export as Document</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                     <h2>あなたの日本語講師</h2>
             </div>
@@ -99,6 +116,26 @@
         </div>
     </div>
 
+    <!-- Export Conversation Modal -->
+    <div class="export-modal-overlay" id="exportModal" onclick="closeExportModal(event)">
+        <div class="export-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Export Conversation</h3>
+                <button class="modal-close-btn" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Export this conversation as a JSON file.</p>
+                <div id="trainingStatus" class="training-status">
+                    <!-- Status will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeExportModal()">Cancel</button>
+                <button class="btn-primary" onclick="confirmExport()">Export</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Modules -->
     <script src="js/app-state.js"></script>
     <script src="js/ui-utils.js"></script>
@@ -107,5 +144,6 @@
     <script src="js/settings.js"></script>
     <script src="js/document-generation.js"></script>
     <script src="js/app-init.js"></script>
+    <script src="js/export.js"></script>
 </body>
 </html>

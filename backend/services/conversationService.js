@@ -94,6 +94,170 @@ class ConversationService {
     }
     return deleted;
   }
+
+  async exportConversation(conversationId, useForTraining = false) {
+    if (!this.isInitialized) await this.initialize();
+
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation) {
+      return { success: false };
+    }
+
+    // Create timestamp for filename
+    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+    const filename = `conversation_${conversationId}_${timestamp}.json`;
+
+    // If user wants to use for training, save a copy to training folder
+    if (useForTraining) {
+      const trainingPath = path.join(__dirname, '../data/training');
+      await fs.mkdir(trainingPath, { recursive: true });
+
+      const trainingFilePath = path.join(trainingPath, filename);
+      await fs.writeFile(trainingFilePath, JSON.stringify(conversation, null, 2), 'utf-8');
+      console.log(`✅ Conversation exported for training: ${trainingFilePath}`);
+    }
+
+    return {
+      success: true,
+      message: useForTraining
+        ? 'Conversation exported successfully and saved for training'
+        : 'Conversation exported successfully',
+      filename,
+      data: conversation
+    };
+  }
+
+  async syncAllConversationsToTraining(enableTraining) {
+    if (!this.isInitialized) await this.initialize();
+
+    const trainingPath = path.join(__dirname, '../data/training');
+
+    if (enableTraining) {
+      // Copy all conversations to training folder
+      await fs.mkdir(trainingPath, { recursive: true });
+
+      let copiedCount = 0;
+      for (const [conversationId, conversation] of this.conversations.entries()) {
+        const filename = `conversation_${conversationId}.json`;
+        const trainingFilePath = path.join(trainingPath, filename);
+        await fs.writeFile(trainingFilePath, JSON.stringify(conversation, null, 2), 'utf-8');
+        copiedCount++;
+      }
+
+      console.log(`✅ Copied ${copiedCount} conversations to training folder`);
+      return {
+        success: true,
+        message: `${copiedCount} conversations copied to training data`,
+        count: copiedCount
+      };
+    } else {
+      // Delete all conversations from training folder
+      try {
+        const files = await fs.readdir(trainingPath);
+        let deletedCount = 0;
+
+        for (const file of files) {
+          if (file.startsWith('conversation_') && file.endsWith('.json')) {
+            await fs.unlink(path.join(trainingPath, file));
+            deletedCount++;
+          }
+        }
+
+        console.log(`🗑️ Deleted ${deletedCount} conversations from training folder`);
+        return {
+          success: true,
+          message: `${deletedCount} conversations removed from training data`,
+          count: deletedCount
+        };
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          // Training folder doesn't exist, nothing to delete
+          return {
+            success: true,
+            message: 'No training data to remove',
+            count: 0
+          };
+        }
+        throw error;
+      }
+    }
+  }
+
+  async getTrainingDataStats() {
+    const trainingPath = path.join(__dirname, '../data/training');
+
+    try {
+      const files = await fs.readdir(trainingPath);
+      const conversationFiles = files.filter(file =>
+        file.startsWith('conversation_') && file.endsWith('.json')
+      );
+
+      return {
+        success: true,
+        count: conversationFiles.length,
+        files: conversationFiles
+      };
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return {
+          success: true,
+          count: 0,
+          files: []
+        };
+      }
+      throw error;
+    }
+  }
+
+  async exportAllTrainingData() {
+    const trainingPath = path.join(__dirname, '../data/training');
+
+    try {
+      const files = await fs.readdir(trainingPath);
+      const conversationFiles = files.filter(file =>
+        file.startsWith('conversation_') && file.endsWith('.json')
+      );
+
+      if (conversationFiles.length === 0) {
+        return {
+          success: false,
+          message: 'No training data available to export'
+        };
+      }
+
+      // Read all training data files
+      const allTrainingData = [];
+      for (const file of conversationFiles) {
+        const filePath = path.join(trainingPath, file);
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        const conversation = JSON.parse(fileContent);
+        allTrainingData.push(conversation);
+      }
+
+      // Create timestamp for filename
+      const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+      const filename = `training_data_export_${timestamp}.json`;
+
+      return {
+        success: true,
+        message: `Successfully exported ${conversationFiles.length} conversations`,
+        filename,
+        data: {
+          exportDate: new Date().toISOString(),
+          totalConversations: conversationFiles.length,
+          conversations: allTrainingData
+        }
+      };
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return {
+          success: false,
+          message: 'Training data folder not found'
+        };
+      }
+      throw error;
+    }
+  }
 }
 
 module.exports = ConversationService;

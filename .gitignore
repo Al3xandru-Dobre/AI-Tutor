@@ -124,11 +124,18 @@ Thumbs.db
 # Docker
 .dockerignore
 
+generated_documents/
+!generated_documents/.gitkeep
+
 # RAG data (keep structure but ignore large files)
 backend/data/grammar/*.pdf
 backend/data/grammar/*.txt
 backend/data/grammar/*.md
 !backend/data/grammar/.gitkeep
+backend/data/history/*.json
+!backend/data/history/.gitkeep
+backend/data/training/*.json
+!backend/data/training/.gitkeep
 
 # Ollama models and cache
 .ollama/
@@ -218,3 +225,16 @@ coverage.xml
 .claude-sessions/
 .claude-data/
 .claude-config/
+
+# ChromaDB specific
+backend/chromaDB/chroma_data/
+backend/chromaDB/chroma_logs/
+backend/chromaDB/backups/
+backend/chromaDB/.env
+
+# Training data and models
+chromaDB-development_and_AI_stuff/venv/
+chromaDB-development_and_AI_stuff/data/embeddings/
+chromaDB-development_and_AI_stuff/models/checkpoints/
+chromaDB-development_and_AI_stuff/models/japanese_embedder/
+chromaDB-development_and_AI_stuff/.ipynb_checkpoints/
