@@ -6,8 +6,8 @@ const {
   testEndpoint
 } = require('../controllers/healthController');
 
-// Health and test routes (no middleware needed for health checks)
-router.get('/health', ensureServicesInitialized, enhancedHealthCheck);
+// Health and test routes (no middleware needed for health checks - they should work even during initialization)
+router.get('/health', enhancedHealthCheck);
 router.get('/test', testEndpoint);
 
 module.exports = router;

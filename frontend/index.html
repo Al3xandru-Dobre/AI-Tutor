@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Japanese AI Tutor</title>
-    <link rel = "stylesheet" href = "style.css"> 
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="light-theme.css">
 </head>
 <body>
     <div class="app-layout" id="appLayout">
@@ -50,30 +51,46 @@
                     </button>
                     <span class="flag">🇯🇵</span>
                     <h1>Japanese AI Tutor</h1>
-                    <div class="header-export-container" id="headerExportContainer" style="display: none;">
-                        <button class="header-export-btn" id="headerExportBtn" onclick="toggleExportMenu()" title="Export this conversation">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                </div>
+                <button class="theme-toggle-btn" id="theme-toggle" title="Toggle theme">
+                    <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3" stroke="white" stroke-width="2"/>
+                        <line x1="12" y1="21" x2="12" y2="23" stroke="white" stroke-width="2"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="white" stroke-width="2"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="white" stroke-width="2"/>
+                        <line x1="1" y1="12" x2="3" y2="12" stroke="white" stroke-width="2"/>
+                        <line x1="21" y1="12" x2="23" y2="12" stroke="white" stroke-width="2"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="white" stroke-width="2"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="white" stroke-width="2"/>
+                    </svg>
+                    <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+                <div class="header-export-container" id="headerExportContainer" style="display: none;">
+                    <button class="header-export-btn" id="headerExportBtn" onclick="toggleExportMenu()" title="Export this conversation">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Export</span>
+                    </button>
+                    <div class="export-dropdown" id="exportDropdown">
+                        <button class="export-dropdown-item" onclick="exportCurrentConversationJSON(); closeExportMenu();">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"></path>
+                                <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"></path>
                             </svg>
-                            <span>Export</span>
+                            <span>Export as JSON</span>
                         </button>
-                        <div class="export-dropdown" id="exportDropdown">
-                            <button class="export-dropdown-item" onclick="exportCurrentConversationJSON(); closeExportMenu();">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                                    <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"></path>
-                                    <path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"></path>
-                                </svg>
-                                <span>Export as JSON</span>
-                            </button>
-                            <button class="export-dropdown-item" onclick="exportCurrentConversation(); closeExportMenu();">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                                    <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
-                                </svg>
-                                <span>Export as Document</span>
-                            </button>
-                        </div>
+                        <button class="export-dropdown-item" onclick="exportCurrentConversation(); closeExportMenu();">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
+                            </svg>
+                            <span>Export as Document</span>
+                        </button>
                     </div>
                 </div>
                     <h2>あなたの日本語講師</h2>

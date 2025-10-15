@@ -3,28 +3,68 @@
 
 // Load conversation history from the server
 async function loadHistory() {
+    console.log('📥 Loading conversation history...');
+    
+    // Check if historyList element exists
+    if (!historyList) {
+        console.error('❌ historyList element not found!');
+        return;
+    }
+    
+    // Show loading state
+    historyList.innerHTML = '<div class="loading-history">Loading conversations...</div>';
+    
     try {
-        const response = await fetch('/api/conversations');
+        const response = await fetch('/api/conversations', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        console.log('📡 History API response status:', response.status);
+        
         if (response.ok) {
             conversationHistory = await response.json();
+            console.log('✅ Loaded', conversationHistory.length, 'conversations');
             renderHistory();
+        } else if (response.status === 503) {
+            // Services still initializing
+            console.warn('⚠️ Services still initializing, will retry...');
+            historyList.innerHTML = `
+                <div class="empty-history">
+                    <p>Loading services...</p>
+                    <p style="font-size: 11px; opacity: 0.7;">Please wait a moment</p>
+                </div>
+            `;
+            // Retry after 2 seconds
+            setTimeout(() => loadHistory(), 2000);
         } else {
-            throw new Error('Failed to load conversations');
+            throw new Error(`Failed to load conversations: ${response.status}`);
         }
     } catch (error) {
-        console.error('Error loading conversation history:', error);
+        console.error('❌ Error loading conversation history:', error);
         historyList.innerHTML = `
             <div class="empty-history">
                 <p>Unable to load conversation history</p>
-                <p style="font-size: 11px; opacity: 0.7;">Check your connection and try again</p>
+                <p style="font-size: 11px; opacity: 0.7;">Server may be starting up. Click to retry.</p>
             </div>
         `;
+        // Add click to retry
+        historyList.querySelector('.empty-history').style.cursor = 'pointer';
+        historyList.querySelector('.empty-history').onclick = () => loadHistory();
     }
 }
 
 // Render the conversation history in the sidebar
 function renderHistory() {
+    console.log('🖼️  Rendering history with', conversationHistory.length, 'conversations');
+    
+    if (!historyList) {
+        console.error('❌ historyList element not found in renderHistory!');
+        return;
+    }
+    
     if (conversationHistory.length === 0) {
+        console.log('📭 No conversations to display');
         historyList.innerHTML = `
             <div class="empty-history">
                 <p>No conversations yet</p>
@@ -34,6 +74,7 @@ function renderHistory() {
         return;
     }
 
+    console.log('✅ Rendering', conversationHistory.length, 'conversation items');
     historyList.innerHTML = conversationHistory.map(conversation => `
         <div class="history-item ${conversation.id === currentConversationId ? 'active' : ''}"
              data-id="${conversation.id}"

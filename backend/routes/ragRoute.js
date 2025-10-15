@@ -17,10 +17,13 @@ const {
     historyRAG_settings
 } = require('../controllers/ragController');
 
+// Stats endpoint can work even during initialization (will show initialization status)
+router.get('/stats', RAGStatistics);
+
+// All other routes require services to be initialized
 router.use(ensureServicesInitialized);
 
 // Basic RAG routes
-router.get('/stats', RAGStatistics);
 router.post('/search', searchRAG);
 router.post('/add', addRag);
 

@@ -1,6 +1,95 @@
 // Messaging Module
 // Functions for sending/receiving messages and AI responses
 
+// Simple Markdown Parser
+function parseMarkdown(text) {
+    if (!text) return '';
+
+    // Escape HTML first to prevent XSS
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Headers (must be at start of line)
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    // Bold and Italic
+    html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Code blocks (must come before inline code)
+    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+    // Inline code
+    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    // Tables
+    const tableRegex = /(\|[^\n]+\|[\r\n]+)(\|[-:| ]+\|[\r\n]+)((?:\|[^\n]+\|[\r\n]*)+)/g;
+    html = html.replace(tableRegex, function(match, header, separator, rows) {
+        let tableHTML = '<table>\n<thead>\n<tr>\n';
+
+        // Parse header
+        const headers = header.split('|').filter(cell => cell.trim());
+        headers.forEach(cell => {
+            tableHTML += `<th>${cell.trim()}</th>\n`;
+        });
+        tableHTML += '</tr>\n</thead>\n<tbody>\n';
+
+        // Parse rows
+        const rowLines = rows.trim().split('\n');
+        rowLines.forEach(row => {
+            if (row.trim()) {
+                tableHTML += '<tr>\n';
+                const cells = row.split('|').filter(cell => cell.trim());
+                cells.forEach(cell => {
+                    tableHTML += `<td>${cell.trim()}</td>\n`;
+                });
+                tableHTML += '</tr>\n';
+            }
+        });
+
+        tableHTML += '</tbody>\n</table>';
+        return tableHTML;
+    });
+
+    // Lists (unordered)
+    html = html.replace(/^\* (.+)$/gim, '<li>$1</li>');
+    html = html.replace(/^- (.+)$/gim, '<li>$1</li>');
+
+    // Lists (ordered)
+    html = html.replace(/^\d+\. (.+)$/gim, '<li>$1</li>');
+
+    // Wrap consecutive <li> in <ul> or <ol>
+    html = html.replace(/(<li>[\s\S]+?<\/li>)/g, function(match) {
+        return '<ul>' + match + '</ul>';
+    });
+
+    // Blockquotes
+    html = html.replace(/^&gt; (.+)$/gim, '<blockquote>$1</blockquote>');
+
+    // Horizontal rules
+    html = html.replace(/^---$/gim, '<hr>');
+    html = html.replace(/^\*\*\*$/gim, '<hr>');
+
+    // Line breaks and paragraphs
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+
+    // Wrap in paragraph if not already wrapped
+    if (!html.startsWith('<')) {
+        html = '<p>' + html + '</p>';
+    }
+
+    return html;
+}
+
 // Get AI response
 async function getAIResponse(userMessage) {
     setLoading(true);
@@ -164,7 +253,10 @@ function addMessage(data, type) {
     }
 
     // Handle both 'response' and 'content' properties
-    const messageContent = data.response || data.content || 'No response content';
+    const rawContent = data.response || data.content || 'No response content';
+
+    // Parse markdown for assistant messages, keep raw for user messages
+    const messageContent = type === 'assistant' ? parseMarkdown(rawContent) : rawContent;
 
     messageDiv.innerHTML = `
         <div class="message-header">${headers[type]}</div>
@@ -178,29 +270,50 @@ function addMessage(data, type) {
 
 // Test server connection (for debugging)
 async function testServerConnection() {
-    try {
-        console.log('🔍 Testing server connection...');
+    const maxRetries = 30; // Max 30 seconds
+    const retryDelay = 1000; // 1 second between retries
 
-        // Test 1: Basic server health
-        const healthResponse = await fetch('/api/health');
-        const healthData = await healthResponse.json();
-        console.log('✅ Health check:', healthData);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔍 Testing server connection (attempt ${attempt}/${maxRetries})...`);
 
-        // Test 2: ChromaDB health
-        const chromaResponse = await fetch('/api/chromadb/health');
-        const chromaData = await chromaResponse.json();
-        console.log('✅ ChromaDB check:', chromaData);
+            // Test 1: Basic server health
+            const healthResponse = await fetch('/api/health');
+            const healthData = await healthResponse.json();
+            console.log('✅ Health check:', healthData);
 
-        // Test 3: RAG stats
-        const ragResponse = await fetch('/api/rag/stats');
-        const ragData = await ragResponse.json();
-        console.log('✅ RAG stats:', ragData);
+            // If still initializing, wait and retry
+            if (healthData.status === 'initializing' || healthData.system_ready === false) {
+                console.log('⏳ Services still initializing, waiting...');
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    continue;
+                }
+                return false;
+            }
 
-        return true;
-    } catch (error) {
-        console.error('❌ Server connection test failed:', error);
-        return false;
+            // Test 2: ChromaDB health (only if services are ready)
+            const chromaResponse = await fetch('/api/chromadb/health');
+            const chromaData = await chromaResponse.json();
+            console.log('✅ ChromaDB check:', chromaData);
+
+            // Test 3: RAG stats
+            const ragResponse = await fetch('/api/rag/stats');
+            const ragData = await ragResponse.json();
+            console.log('✅ RAG stats:', ragData);
+
+            console.log('🎉 All services ready!');
+            return true;
+        } catch (error) {
+            console.error(`❌ Server connection test failed (attempt ${attempt}/${maxRetries}):`, error);
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
     }
+
+    console.error('❌ Server failed to initialize after maximum retries');
+    return false;
 }
 
 // Debug chat function

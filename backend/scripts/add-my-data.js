@@ -1,5 +1,4 @@
 const EnhancedRAGService = require('../services/enhancedRAGService');
-const { ChromaClient } = require('chromadb');
 
 async function addCustomData() {
   const ragService = new EnhancedRAGService({
