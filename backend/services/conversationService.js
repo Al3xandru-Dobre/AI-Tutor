@@ -80,11 +80,18 @@ class ConversationService {
     return this.conversations.get(conversationId);
   }
 
-  async listConversations() {
+  async listConversations(limit = null, offset = 0) {
     // Return a summary of conversations, not the full message history
-    return Array.from(this.conversations.values())
+    const allConversations = Array.from(this.conversations.values())
       .map(({ id, title, createdAt }) => ({ id, title, createdAt }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Apply pagination if limit is specified
+    if (limit !== null) {
+      return allConversations.slice(offset, offset + limit);
+    }
+    
+    return allConversations;
   }
 
   async deleteConversation(conversationId) {

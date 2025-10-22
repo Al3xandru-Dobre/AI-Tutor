@@ -1,10 +1,13 @@
 const { getServices } = require('../middlewear/initialise');
 
-// List all conversations
+// List all conversations with pagination support
 async function listConversations(req, res) {
   try {
     const { history } = getServices();
-    const conversations = await history.listConversations();
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const conversations = await history.listConversations(limit, offset);
     res.json(conversations);
   } catch (error) {
     res.status(500).json({ error: error.message });

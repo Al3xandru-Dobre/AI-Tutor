@@ -1,9 +1,90 @@
 // Conversation History Management
 // Functions for loading, rendering, and managing conversation history
+let historyChunkSize = 20; // Number of conversations to load at a time
+let currentHistoryOffset = 0; // Current offset for pagination
+let hasMoreHistory = true; // Flag to track if more history is available
+let isLoadingHistory = false; // Prevent multiple simultaneous loads
 
-// Load conversation history from the server
+// Lazy loading implementation for conversation history
+async function loadHistoryChunk() {
+    if (isLoadingHistory || !hasMoreHistory) return;
+    
+    isLoadingHistory = true;
+    
+    // Add loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-more-history';
+    loadingDiv.innerHTML = '<p style="text-align: center; padding: 10px; font-size: 12px; opacity: 0.7;">Loading more...</p>';
+    historyList.appendChild(loadingDiv);
+    
+    try {
+        const response = await fetch(`/api/conversations?limit=${historyChunkSize}&offset=${currentHistoryOffset}`);
+        const conversations = await response.json();
+
+        if (conversations.length > 0) {
+            renderHistoryChunk(conversations);
+            currentHistoryOffset += conversations.length;
+            hasMoreHistory = conversations.length === historyChunkSize;
+        } else {
+            hasMoreHistory = false;
+            // Remove loading indicator
+            loadingDiv.remove();
+        }
+    } catch (error) {
+        console.error('Error loading history chunk:', error);
+        // Remove loading indicator on error
+        loadingDiv.remove();
+    } finally {
+        isLoadingHistory = false;
+    }
+}
+
+function handleHistoryScroll() {
+    if (historyList.scrollTop + historyList.clientHeight >= historyList.scrollHeight * 0.8) {
+        loadHistoryChunk();
+    }
+}
+
+function renderHistoryChunk(conversations) {
+    // Remove loading indicator if it exists
+    const loadingIndicator = historyList.querySelector('.loading-more-history');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+    
+    conversations.forEach(conversation => {
+        const historyItem = document.createElement('div');
+        historyItem.classList.add('history-item');
+        historyItem.classList.toggle('active', conversation.id === currentConversationId);
+        historyItem.setAttribute('data-id', conversation.id);
+        
+        historyItem.innerHTML = `
+            <div class="history-item-content">
+                <div class="history-item-title">${conversation.title || 'Untitled Conversation'}</div>
+                <div class="history-item-date">${formatDate(conversation.createdAt)}</div>
+            </div>
+            <div class="history-item-actions">
+                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export as document">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                        <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
+                    </svg>
+                </button>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${conversation.id}')" title="Delete conversation">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                        <path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.748 1.748 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        
+        historyItem.onclick = () => loadConversation(conversation.id);
+        historyList.appendChild(historyItem);
+    });
+}
+
+// Load conversation history from the server with lazy loading
 async function loadHistory() {
-    console.log('📥 Loading conversation history...');
+    console.log('📥 Loading conversation history with lazy loading...');
     
     // Check if historyList element exists
     if (!historyList) {
@@ -11,11 +92,19 @@ async function loadHistory() {
         return;
     }
     
+    // Reset lazy loading state
+    currentHistoryOffset = 0;
+    hasMoreHistory = true;
+    isLoadingHistory = false;
+    
+    // Remove old scroll listener to prevent duplicates
+    historyList.removeEventListener('scroll', handleHistoryScroll);
+    
     // Show loading state
     historyList.innerHTML = '<div class="loading-history">Loading conversations...</div>';
     
     try {
-        const response = await fetch('/api/conversations', {
+        const response = await fetch(`/api/conversations?limit=${historyChunkSize}&offset=${currentHistoryOffset}`, {
             headers: {
                 'Accept': 'application/json'
             }
@@ -23,9 +112,29 @@ async function loadHistory() {
         console.log('📡 History API response status:', response.status);
         
         if (response.ok) {
-            conversationHistory = await response.json();
-            console.log('✅ Loaded', conversationHistory.length, 'conversations');
-            renderHistory();
+            const conversations = await response.json();
+            console.log('✅ Loaded', conversations.length, 'conversations');
+            
+            // Clear loading state
+            historyList.innerHTML = '';
+            
+            if (conversations.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-history">
+                        <p>No conversations yet</p>
+                        <p style="font-size: 11px; opacity: 0.7;">Start a new chat to begin your Japanese learning journey!</p>
+                    </div>
+                `;
+            } else {
+                renderHistoryChunk(conversations);
+                currentHistoryOffset = conversations.length;
+                hasMoreHistory = conversations.length === historyChunkSize;
+                
+                // Add scroll listener for lazy loading (only once)
+                if (hasMoreHistory) {
+                    historyList.addEventListener('scroll', handleHistoryScroll);
+                }
+            }
         } else if (response.status === 503) {
             // Services still initializing
             console.warn('⚠️ Services still initializing, will retry...');
@@ -54,49 +163,11 @@ async function loadHistory() {
     }
 }
 
-// Render the conversation history in the sidebar
+// Render the conversation history in the sidebar (legacy function - use lazy loading instead)
 function renderHistory() {
-    console.log('🖼️  Rendering history with', conversationHistory.length, 'conversations');
-    
-    if (!historyList) {
-        console.error('❌ historyList element not found in renderHistory!');
-        return;
-    }
-    
-    if (conversationHistory.length === 0) {
-        console.log('📭 No conversations to display');
-        historyList.innerHTML = `
-            <div class="empty-history">
-                <p>No conversations yet</p>
-                <p style="font-size: 11px; opacity: 0.7;">Start a new chat to begin your Japanese learning journey!</p>
-            </div>
-        `;
-        return;
-    }
-
-    console.log('✅ Rendering', conversationHistory.length, 'conversation items');
-    historyList.innerHTML = conversationHistory.map(conversation => `
-        <div class="history-item ${conversation.id === currentConversationId ? 'active' : ''}"
-             data-id="${conversation.id}"
-             onclick="loadConversation('${conversation.id}')">
-            <div class="history-item-content">
-                <div class="history-item-title">${conversation.title || 'Untitled Conversation'}</div>
-                <div class="history-item-date">${formatDate(conversation.createdAt)}</div>
-            </div>
-            <div class="history-item-actions">
-                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export as document">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                        <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
-                    </svg>
-                </button>
-                <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${conversation.id}')" title="Delete conversation">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                        <path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.748 1.748 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `).join('');
+    console.log('�️  Legacy renderHistory called - using lazy loading instead');
+    // This function is now deprecated in favor of lazy loading
+    loadHistory();
 }
 
 // Delete a conversation
