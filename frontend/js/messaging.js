@@ -5,32 +5,24 @@
 function parseMarkdown(text) {
     if (!text) return '';
 
+    // Trim excessive whitespace and normalize line endings
+    text = text.trim().replace(/\r\n/g, '\n');
+
+    // Remove excessive blank lines (more than 2 consecutive newlines)
+    text = text.replace(/\n{3,}/g, '\n\n');
+
     // Escape HTML first to prevent XSS
     let html = text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-    // Headers (must be at start of line)
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    // Code blocks (must come before headers and other processing)
+    html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+        return '<pre><code>' + code.trim() + '</code></pre>';
+    });
 
-    // Bold and Italic
-    html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-    // Code blocks (must come before inline code)
-    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-
-    // Inline code
-    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-    // Tables
+    // Tables (process before other replacements)
     const tableRegex = /(\|[^\n]+\|[\r\n]+)(\|[-:| ]+\|[\r\n]+)((?:\|[^\n]+\|[\r\n]*)+)/g;
     html = html.replace(tableRegex, function(match, header, separator, rows) {
         let tableHTML = '<table>\n<thead>\n<tr>\n';
@@ -59,33 +51,71 @@ function parseMarkdown(text) {
         return tableHTML;
     });
 
-    // Lists (unordered)
-    html = html.replace(/^\* (.+)$/gim, '<li>$1</li>');
-    html = html.replace(/^- (.+)$/gim, '<li>$1</li>');
-
-    // Lists (ordered)
-    html = html.replace(/^\d+\. (.+)$/gim, '<li>$1</li>');
-
-    // Wrap consecutive <li> in <ul> or <ol>
-    html = html.replace(/(<li>[\s\S]+?<\/li>)/g, function(match) {
-        return '<ul>' + match + '</ul>';
-    });
-
-    // Blockquotes
-    html = html.replace(/^&gt; (.+)$/gim, '<blockquote>$1</blockquote>');
+    // Headers (must be at start of line)
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
 
     // Horizontal rules
     html = html.replace(/^---$/gim, '<hr>');
     html = html.replace(/^\*\*\*$/gim, '<hr>');
 
-    // Line breaks and paragraphs
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = html.replace(/\n/g, '<br>');
+    // Blockquotes
+    html = html.replace(/^&gt; (.+)$/gim, '<blockquote>$1</blockquote>');
 
-    // Wrap in paragraph if not already wrapped
-    if (!html.startsWith('<')) {
-        html = '<p>' + html + '</p>';
-    }
+    // Lists (unordered) - improved to handle multiple lines
+    html = html.replace(/^\* (.+)$/gim, '::UL_ITEM::$1');
+    html = html.replace(/^- (.+)$/gim, '::UL_ITEM::$1');
+
+    // Lists (ordered)
+    html = html.replace(/^\d+\. (.+)$/gim, '::OL_ITEM::$1');
+
+    // Wrap list items - improved to prevent empty list items
+    html = html.replace(/(::UL_ITEM::.+?)(?=\n(?!::UL_ITEM::)|$)/gs, function(match) {
+        const items = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                return line.replace(/^::UL_ITEM::/, '<li>') + '</li>';
+            }).join('\n');
+        return '<ul>\n' + items + '\n</ul>';
+    });
+
+    html = html.replace(/(::OL_ITEM::.+?)(?=\n(?!::OL_ITEM::)|$)/gs, function(match) {
+        const items = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                return line.replace(/^::OL_ITEM::/, '<li>') + '</li>';
+            }).join('\n');
+        return '<ol>\n' + items + '\n</ol>';
+    });
+
+    // Bold and Italic (after lists to avoid conflicts)
+    html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Inline code
+    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    // Split into paragraphs based on double newlines
+    const paragraphs = html.split('\n\n');
+    html = paragraphs.map(para => {
+        para = para.trim();
+        if (!para) return ''; // Skip empty paragraphs
+
+        // Don't wrap if already a block element
+        if (para.match(/^<(h[1-6]|table|ul|ol|pre|blockquote|hr|div)/i)) {
+            return para;
+        }
+
+        // Replace single newlines with <br> within paragraphs
+        para = para.replace(/\n/g, '<br>');
+
+        return '<p>' + para + '</p>';
+    }).filter(p => p).join('\n'); // Remove empty strings
 
     return html;
 }
@@ -103,6 +133,11 @@ async function getAIResponse(userMessage) {
             conversationId: currentConversationId
         });
 
+        // Get current model selection if available
+        const modelSelection = typeof getCurrentModelSelection === 'function'
+            ? getCurrentModelSelection()
+            : { provider: null, model: null };
+
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -113,7 +148,9 @@ async function getAIResponse(userMessage) {
                 useOrchestrator: true,
                 useAdvancedRAG: isAdvancedRAGEnabled,
                 context: {},
-                conversationId: currentConversationId
+                conversationId: currentConversationId,
+                provider: modelSelection.provider,
+                model: modelSelection.model
             })
         });
 
@@ -237,8 +274,9 @@ function addMessage(data, type) {
             // Get timing info - support both old and new format
             const timing = data.total_time || data.processing_time || data.metadata?.processing_time || '?';
             const model = data.model || 'AI Tutor';
+            const provider = data.provider ? ` (${data.provider})` : '';
 
-            infoText = `<span>${model} • ${timing}ms${featuresText}</span>`;
+            infoText = `<span>${model}${provider} • ${timing}ms${featuresText}</span>`;
         } else {
             infoText = `<span>An error occurred. Try again.</span>`;
         }
