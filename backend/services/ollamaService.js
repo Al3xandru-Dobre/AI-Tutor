@@ -300,14 +300,15 @@ class OllamaService {
   }
 
   buildJapaneseTutorPrompt(userInput, context) {
-    const { 
-      level = 'beginner', 
-      topic, 
-      exercise_type, 
-      previous_context, 
-      rag_context = [], 
+    const {
+      level = 'beginner',
+      topic,
+      exercise_type,
+      previous_context,
+      rag_context = [],
       internet_context = [],
-      combined_sources = ''
+      combined_sources = '',
+      conversationHistory = []  // Full conversation history
     } = context;
     
     // Level-specific instructions
@@ -320,20 +321,27 @@ class OllamaService {
     
     let systemPrompt = `You are an expert Japanese language tutor with years of teaching experience. You are helping a ${level} level student.
 
-IMPORTANT GUIDELINES:
+CRITICAL INSTRUCTION - LANGUAGE OF EXPLANATION:
+- You MUST explain Japanese concepts, grammar, and vocabulary IN ENGLISH (or the student's native language)
+- Japanese text should ONLY be used for examples, vocabulary items, and phrases being taught
+- All explanations, descriptions, and teaching content should be in English
+- For example: "The particle は (wa) is used to mark the topic of a sentence" ✓
+- NOT: "は（wa）は文の主題を示すために使われます" ✗
+
+TEACHING GUIDELINES:
 - ${levelInstructions[level]}
 - Always show Japanese characters properly: ひらがな (hiragana), カタカナ (katakana), 漢字 (kanji)
 - Format Japanese text clearly with proper Unicode support
 - Be thorough and educational - this is a learning environment, so detailed explanations are valued
 - Always be encouraging and patient
 - Provide practical examples they can use immediately  
-- When showing Japanese text, include pronunciation help
-- Show kanji with furigana when appropriate
-- If the user requests exercises, provide them with answers and explanations
-- Use a mix of English and Japanese as appropriate for the student's level
+- When showing Japanese text, include romanization or pronunciation help in parentheses
+- Show kanji with furigana when appropriate (e.g., 本を読む (hon o yomu))
+- If the user requests exercises, provide them with answers and explanations IN ENGLISH
+- Use markdown tables for structured information (grammar patterns, vocabulary lists, etc.)
 - Reference previous context if relevant: ${previous_context ? previous_context : 'None'}
 - Tailor examples to the topic if provided: ${topic ? topic : 'General topics'}
-- Explain cultural context when relevant
+- Explain cultural context when relevant - in English
 - If the question is complex, break down your explanation into clear sections
 - If the question is unclear, ask for clarification
 - Use the reference materials provided to give accurate, well-sourced answers
@@ -380,6 +388,31 @@ Current context: ${topic ? `Topic: ${topic}` : 'General Japanese learning'}`;
     // Add instruction for using references
     if ((rag_context && rag_context.length > 0) || (internet_context && internet_context.length > 0)) {
       systemPrompt += `\n\nIMPORTANT: Use the reference materials above to provide accurate, well-informed answers. When possible, cite which source you're drawing information from (e.g., "According to the grammar guide..." or "Based on the reference materials...").`;
+    }
+
+    // Add conversation history if available (PRIVACY-PRESERVING)
+    // This allows the model to maintain context across the conversation
+    if (conversationHistory && conversationHistory.length > 1) {
+      // Exclude the current message (last one) as it will be added separately
+      const previousMessages = conversationHistory.slice(0, -1);
+
+      systemPrompt += `\n\nCONVERSATION HISTORY (for context continuity):`;
+      systemPrompt += `\nThis conversation has ${previousMessages.length} previous message(s). Here's what we discussed:\n`;
+
+      previousMessages.forEach((msg, index) => {
+        const speaker = msg.role === 'user' ? 'Student' : 'Tutor';
+        // Truncate very long messages to keep prompt manageable
+        const content = msg.content.length > 200
+          ? msg.content.substring(0, 200) + '...'
+          : msg.content;
+        systemPrompt += `\n${index + 1}. ${speaker}: ${content}`;
+      });
+
+      systemPrompt += `\n\nIMPORTANT: Use this conversation history to:
+- Maintain continuity and context from previous exchanges
+- Reference topics, vocabulary, or grammar points already discussed
+- Avoid repeating information unless the student asks for clarification
+- Build upon what the student has already learned in this conversation`;
     }
 
     return `${systemPrompt}

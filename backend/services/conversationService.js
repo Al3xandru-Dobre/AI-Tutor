@@ -7,18 +7,56 @@ class ConversationService {
     this.conversations = new Map();
     this.historyPath = path.join(__dirname, '../data/history');
     this.historyFilePath = path.join(this.historyPath, 'conversations.json');
+    this.settingsPath = path.join(__dirname, '../data/privacy/user-settings.json');
     this.isInitialized = false;
+    this.settings = {
+      includeConversationHistory: true,  // Privacy setting: include full conversation history in model context
+      maxHistoryTokens: 8000,            // Max tokens for conversation history
+      historyRAGEnabled: true,
+      encryptionEnabled: true
+    };
   }
 
   async initialize() {
     try {
       await fs.mkdir(this.historyPath, { recursive: true });
+      await fs.mkdir(path.join(__dirname, '../data/privacy'), { recursive: true });
       await this.loadConversations();
+      await this.loadSettings();
       this.isInitialized = true;
       console.log('Conversation Service initialized.');
+      console.log(`  Privacy setting - Include conversation history: ${this.settings.includeConversationHistory}`);
     } catch (error) {
       console.error('Conversation Service initialization error:', error);
       this.isInitialized = false;
+    }
+  }
+
+  async loadSettings() {
+    try {
+      const data = await fs.readFile(this.settingsPath, 'utf-8');
+      const savedSettings = JSON.parse(data);
+      this.settings = {
+        ...this.settings,
+        ...savedSettings
+      };
+      console.log('Privacy settings loaded.');
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        console.log('No settings file found. Using defaults.');
+        await this.saveSettings();
+      } else {
+        console.error('Error loading settings:', error);
+      }
+    }
+  }
+
+  async saveSettings() {
+    try {
+      const dataToSave = JSON.stringify(this.settings, null, 2);
+      await fs.writeFile(this.settingsPath, dataToSave, 'utf-8');
+    } catch (error) {
+      console.error('Error saving settings:', error);
     }
   }
 
@@ -80,6 +118,158 @@ class ConversationService {
     return this.conversations.get(conversationId);
   }
 
+  /**
+   * Get conversation messages formatted for model context
+   * @param {string} conversationId - The conversation ID
+   * @param {object} options - Options for message retrieval
+   * @returns {Array} Array of messages in {role, content} format
+   */
+  async getConversationMessages(conversationId, options = {}) {
+    // PRIVACY: Check if conversation history inclusion is enabled
+    if (!this.settings.includeConversationHistory) {
+      console.log('⚠️  Conversation history inclusion is disabled (privacy setting)');
+      return [];
+    }
+
+    const {
+      maxMessages = null,        // Maximum number of messages to return (null = all)
+      maxTokens = null,          // Approximate token limit (null = no limit)
+      includeSystemPrompt = false, // Whether to include a system prompt
+      systemPrompt = null,       // Custom system prompt
+      preserveRecent = true      // If truncating, keep most recent messages
+    } = options;
+
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation) {
+      return [];
+    }
+
+    let messages = [...conversation.messages]; // Create a copy
+
+    // Apply message count limit if specified
+    if (maxMessages && messages.length > maxMessages) {
+      if (preserveRecent) {
+        // Keep most recent messages
+        messages = messages.slice(-maxMessages);
+      } else {
+        // Keep oldest messages
+        messages = messages.slice(0, maxMessages);
+      }
+    }
+
+    // Apply approximate token limit if specified
+    if (maxTokens) {
+      messages = this._truncateByTokens(messages, maxTokens, preserveRecent);
+    }
+
+    // Format messages for model context
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    // Add system prompt if requested
+    if (includeSystemPrompt && systemPrompt) {
+      formattedMessages.unshift({
+        role: 'system',
+        content: systemPrompt
+      });
+    }
+
+    return formattedMessages;
+  }
+
+  /**
+   * Truncate messages based on approximate token count
+   * Uses rough estimate: 1 token ≈ 4 characters
+   * @private
+   */
+  _truncateByTokens(messages, maxTokens, preserveRecent = true) {
+    const estimateTokens = (text) => Math.ceil(text.length / 4);
+
+    let totalTokens = 0;
+    const result = [];
+
+    // Process messages in appropriate order
+    const orderedMessages = preserveRecent ? [...messages].reverse() : messages;
+
+    for (const msg of orderedMessages) {
+      const msgTokens = estimateTokens(msg.content);
+
+      if (totalTokens + msgTokens <= maxTokens) {
+        result.push(msg);
+        totalTokens += msgTokens;
+      } else {
+        // Check if we can fit a truncated version of this message
+        const remainingTokens = maxTokens - totalTokens;
+        if (remainingTokens > 50) { // Only if we have meaningful space left
+          const truncatedContent = msg.content.substring(0, remainingTokens * 4) + '...';
+          result.push({
+            ...msg,
+            content: truncatedContent
+          });
+        }
+        break;
+      }
+    }
+
+    // Restore original order if we processed in reverse
+    return preserveRecent ? result.reverse() : result;
+  }
+
+  /**
+   * Get conversation summary for context
+   * Returns a condensed version of the conversation
+   */
+  async getConversationSummary(conversationId, maxMessages = 5) {
+    const messages = this.getConversationMessages(conversationId, {
+      maxMessages,
+      preserveRecent: true
+    });
+
+    if (messages.length === 0) {
+      return 'No previous conversation.';
+    }
+
+    const summary = messages.map((msg, idx) =>
+      `${idx + 1}. ${msg.role === 'user' ? 'User' : 'Assistant'}: ${
+        msg.content.length > 100
+          ? msg.content.substring(0, 100) + '...'
+          : msg.content
+      }`
+    ).join('\n');
+
+    return `Previous conversation (last ${messages.length} messages):\n${summary}`;
+  }
+
+  /**
+   * Update privacy settings
+   * @param {object} newSettings - Settings to update
+   */
+  async updatePrivacySettings(newSettings) {
+    this.settings = {
+      ...this.settings,
+      ...newSettings,
+      lastUpdated: new Date().toISOString()
+    };
+    await this.saveSettings();
+    console.log('Privacy settings updated:', newSettings);
+    return this.settings;
+  }
+
+  /**
+   * Get current privacy settings
+   */
+  getPrivacySettings() {
+    return {
+      ...this.settings,
+      includeConversationHistory: this.settings.includeConversationHistory,
+      maxHistoryTokens: this.settings.maxHistoryTokens,
+      historyRAGEnabled: this.settings.historyRAGEnabled,
+      encryptionEnabled: this.settings.encryptionEnabled
+    };
+  }
+
   async listConversations(limit = null, offset = 0) {
     // Return a summary of conversations, not the full message history
     const allConversations = Array.from(this.conversations.values())
@@ -100,6 +290,21 @@ class ConversationService {
       await this.saveConversations();
     }
     return deleted;
+  }
+
+  async deleteAllConversations() {
+    if (!this.isInitialized) await this.initialize();
+
+    const count = this.conversations.size;
+    this.conversations.clear();
+    await this.saveConversations();
+
+    console.log(`🗑️ Deleted all ${count} conversations`);
+    return {
+      success: true,
+      message: `Successfully deleted ${count} conversation(s)`,
+      count
+    };
   }
 
   async exportConversation(conversationId, useForTraining = false) {

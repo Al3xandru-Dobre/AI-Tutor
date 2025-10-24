@@ -5,6 +5,7 @@ const {
   listConversations,
   getConversation,
   deleteConversation,
+  deleteAllConversations,
   exportConversation,
   syncTrainingData,
   getTrainingStats,
@@ -16,6 +17,7 @@ router.use(ensureServicesInitialized);
 
 // Conversation routes
 router.get('/', listConversations);
+router.delete('/', deleteAllConversations);  // Must be before /:id route
 router.get('/:id', getConversation);
 router.delete('/:id', deleteConversation);
 router.post('/:id/export', exportConversation);

@@ -48,6 +48,32 @@ async function deleteConversation(req, res) {
   }
 }
 
+// Delete all conversations
+async function deleteAllConversations(req, res) {
+  try {
+    const { history, historyRAG } = getServices();
+    const result = await history.deleteAllConversations();
+
+    if (result.success) {
+      // Rebuild history index after deletion
+      if (historyRAG && historyRAG.isInitialized) {
+        await historyRAG.initialize();
+      }
+
+      res.json({
+        success: true,
+        message: result.message,
+        count: result.count
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to delete conversations' });
+    }
+  } catch (error) {
+    console.error('Error deleting all conversations:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
 // Export conversation
 async function exportConversation(req, res) {
   try {
@@ -139,6 +165,7 @@ module.exports = {
   listConversations,
   getConversation,
   deleteConversation,
+  deleteAllConversations,
   exportConversation,
   syncTrainingData,
   getTrainingStats,

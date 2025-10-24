@@ -6,11 +6,12 @@ const path = require('path');
 const { marked } = require('marked');
 
 class DocumentGenerationService {
-  constructor(ollamaService = null) {
+  constructor(ollamaService = null, modelProviderService = null) {
     this.outputDir = path.join(__dirname, '../../generated_documents');
     this.fontPath = path.join(__dirname, '../fonts/NotoSansJP-Regular.ttf');
     this.ensureOutputDirectory();
-    this.ollamaService = ollamaService;
+    this.ollamaService = ollamaService; // Keep for backward compatibility
+    this.modelProviderService = modelProviderService;
 
     this.stats = {
       totalGenerated: 0,
@@ -94,7 +95,7 @@ class DocumentGenerationService {
   }
 
   /**
-   * Generate PDF from conversation
+   * Generate PDF from conversation with modern styling
    * @param {Object} conversation - Conversation object with messages
    * @param {Object} options - Generation options
    * @returns {Promise<string>} - Path to generated PDF
@@ -109,7 +110,7 @@ class DocumentGenerationService {
         // Create PDF document
         const doc = new PDFDocument({
           size: 'A4',
-          margins: { top: 50, bottom: 50, left: 50, right: 50 },
+          margins: { top: 60, bottom: 60, left: 60, right: 60 },
           info: {
             Title: conversation.title || 'Japanese Learning Conversation',
             Author: 'AI Tutor',
@@ -124,89 +125,164 @@ class DocumentGenerationService {
         // Register Japanese font
         this._registerJapaneseFont(doc);
 
-        // Add header
-        doc.fontSize(20)
-           .fillColor('#2c3e50')
-           .text(conversation.title || 'Japanese Learning Conversation', { align: 'center' });
+        // Modern color palette
+        const colors = {
+          primary: '#D32F2F',
+          secondary: '#1976D2',
+          accent: '#FFA726',
+          userBg: '#E3F2FD',
+          userBorder: '#2196F3',
+          assistantBg: '#F1F8E9',
+          assistantBorder: '#8BC34A',
+          dark: '#263238',
+          text: '#37474F',
+          textLight: '#607D8B'
+        };
 
-        doc.moveDown(0.5);
+        // Header section
+        const headerHeight = 100;
+        doc.rect(0, 0, doc.page.width, headerHeight)
+           .fill(colors.primary);
+
+        doc.rect(0, headerHeight - 6, doc.page.width, 6)
+           .fill(colors.accent);
+
+        // Title
+        doc.fontSize(24)
+           .fillColor('#FFFFFF');
+        this._setFont(doc, 'bold');
+        doc.text(conversation.title || 'Japanese Learning Conversation', 60, 30, {
+          align: 'center',
+          width: doc.page.width - 120
+        });
+
+        // Metadata
         doc.fontSize(10)
-           .fillColor('#7f8c8d')
-           .text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
+           .fillColor('#FFFFFF');
+        this._setFont(doc, 'regular');
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 60, 65, {
+          align: 'center',
+          width: doc.page.width - 120
+        });
 
-        doc.moveDown(1);
-        doc.strokeColor('#3498db')
-           .lineWidth(2)
-           .moveTo(50, doc.y)
-           .lineTo(545, doc.y)
-           .stroke();
+        // Move below header
+        doc.y = headerHeight + 25;
 
-        doc.moveDown(1.5);
-
-        // Add conversation metadata
+        // Conversation info box
         if (conversation.createdAt) {
+          const infoY = doc.y;
+          doc.roundedRect(60, infoY, doc.page.width - 120, 35, 5)
+             .fill(colors.userBg);
+
           doc.fontSize(9)
-             .fillColor('#95a5a6')
-             .text(`Conversation started: ${new Date(conversation.createdAt).toLocaleString()}`);
-          doc.moveDown(0.5);
+             .fillColor(colors.textLight);
+          this._setFont(doc, 'regular');
+          doc.text(
+            `Conversation started: ${new Date(conversation.createdAt).toLocaleString()}  •  ${conversation.messages.length} messages`,
+            70,
+            infoY + 12
+          );
+
+          doc.y = infoY + 50;
         }
 
-        // Add messages
+        // Add messages with modern chat-style bubbles
         conversation.messages.forEach((message, index) => {
           // Check if we need a new page
-          if (doc.y > 700) {
+          if (doc.y > 680) {
             doc.addPage();
+            doc.y = 60;
           }
 
           const isUser = message.role === 'user';
-          const bgColor = isUser ? '#ecf0f1' : '#e8f5e9';
-          const textColor = isUser ? '#2c3e50' : '#1b5e20';
+          const bubbleColor = isUser ? colors.userBg : colors.assistantBg;
+          const borderColor = isUser ? colors.userBorder : colors.assistantBorder;
           const roleLabel = isUser ? '👤 You' : '🤖 AI Tutor';
+          const icon = isUser ? '👤' : '🤖';
 
-          // Message container
           const startY = doc.y;
 
+          // Role indicator with icon
           doc.fontSize(10)
-             .fillColor(textColor);
+             .fillColor(colors.dark);
           this._setFont(doc, 'bold');
-          doc.text(roleLabel, { continued: false });
+          doc.text(`${icon} ${roleLabel}`, 70, startY);
 
-          doc.moveDown(0.3);
+          doc.moveDown(0.5);
 
+          // Message bubble
+          const messageStartY = doc.y;
+          const bubbleX = 70;
+          const bubbleWidth = doc.page.width - 140;
+
+          // Draw bubble background
+          doc.roundedRect(bubbleX, messageStartY - 5, bubbleWidth, 'auto', 8)
+             .fillAndStroke(bubbleColor, borderColor)
+             .lineWidth(1.5);
+
+          // Message content
           doc.fontSize(11)
-             .fillColor('#000000');
+             .fillColor(colors.text);
           this._setFont(doc, 'regular');
-          doc.text(message.content, {
-               width: 495,
-               align: 'left',
-               lineGap: 3
-             });
+          doc.text(message.content, bubbleX + 15, messageStartY + 5, {
+            width: bubbleWidth - 30,
+            align: 'left',
+            lineGap: 4
+          });
 
-          doc.moveDown(1);
+          const bubbleHeight = doc.y - messageStartY + 15;
 
-          // Add separator
-          if (index < conversation.messages.length - 1) {
-            doc.strokeColor('#bdc3c7')
-               .lineWidth(0.5)
-               .moveTo(50, doc.y)
-               .lineTo(545, doc.y)
-               .stroke();
-            doc.moveDown(1);
-          }
+          // Redraw bubble with correct height
+          doc.roundedRect(bubbleX, messageStartY - 5, bubbleWidth, bubbleHeight, 8)
+             .fillAndStroke(bubbleColor, borderColor)
+             .lineWidth(1.5);
+
+          // Re-render text on top
+          doc.fontSize(11)
+             .fillColor(colors.text);
+          this._setFont(doc, 'regular');
+          doc.text(message.content, bubbleX + 15, messageStartY + 5, {
+            width: bubbleWidth - 30,
+            align: 'left',
+            lineGap: 4
+          });
+
+          doc.moveDown(1.5);
         });
 
         // Add footer to all pages
         const range = doc.bufferedPageRange();
         for (let i = 0; i < range.count; i++) {
           doc.switchToPage(range.start + i);
+
+          // Footer line
+          const footerY = doc.page.height - 50;
+          doc.moveTo(60, footerY)
+             .lineTo(doc.page.width - 60, footerY)
+             .lineWidth(1)
+             .strokeColor(colors.textLight)
+             .stroke();
+
+          // Page number
+          doc.fontSize(9)
+             .fillColor(colors.textLight);
+          this._setFont(doc, 'regular');
+          doc.text(
+            `Page ${i + 1} of ${range.count}`,
+            60,
+            footerY + 10,
+            { align: 'center', width: doc.page.width - 120 }
+          );
+
+          // Branding
           doc.fontSize(8)
-             .fillColor('#95a5a6')
-             .text(
-               `Page ${i + 1} of ${range.count}`,
-               50,
-               doc.page.height - 40,
-               { align: 'center' }
-             );
+             .fillColor(colors.textLight);
+          doc.text(
+            '✨ Generated by AI Japanese Tutor',
+            60,
+            footerY + 25,
+            { align: 'center', width: doc.page.width - 120 }
+          );
         }
 
         doc.end();
@@ -353,7 +429,7 @@ class DocumentGenerationService {
   }
 
   /**
-   * Generate study guide PDF from learning materials
+   * Generate study guide PDF from learning materials with modern styling
    * @param {Object} data - Study guide data
    * @returns {Promise<string>} - Path to generated PDF
    */
@@ -366,7 +442,7 @@ class DocumentGenerationService {
 
         const doc = new PDFDocument({
           size: 'A4',
-          margins: { top: 50, bottom: 50, left: 50, right: 50 }
+          margins: { top: 60, bottom: 60, left: 60, right: 60 }
         });
 
         const stream = fs.createWriteStream(filepath);
@@ -375,70 +451,201 @@ class DocumentGenerationService {
         // Register Japanese font
         this._registerJapaneseFont(doc);
 
+        // Modern color palette (Japanese-inspired)
+        const colors = {
+          primary: '#D32F2F',      // Red (traditional Japanese red)
+          secondary: '#1976D2',    // Blue
+          accent: '#FFA726',       // Orange
+          dark: '#263238',         // Dark blue-grey
+          light: '#ECEFF1',        // Light grey
+          success: '#388E3C',      // Green
+          text: '#37474F',         // Dark grey for text
+          textLight: '#607D8B'     // Light grey for secondary text
+        };
+
+        // HEADER SECTION - with gradient-like effect
+        const headerHeight = 120;
+        doc.rect(0, 0, doc.page.width, headerHeight)
+           .fill(colors.primary);
+
+        // Decorative accent bar
+        doc.rect(0, headerHeight - 8, doc.page.width, 8)
+           .fill(colors.accent);
+
         // Title
-        doc.fontSize(24)
-           .fillColor('#2c3e50');
+        doc.fontSize(28)
+           .fillColor('#FFFFFF');
         this._setFont(doc, 'bold');
-        doc.text(data.title || 'Japanese Study Guide', { align: 'center' });
+        doc.text(data.title || 'Japanese Study Guide', 60, 35, {
+          align: 'center',
+          width: doc.page.width - 120
+        });
+
+        // Subtitle with level badge
+        if (data.level) {
+          doc.fontSize(14)
+             .fillColor('#FFFFFF');
+          this._setFont(doc, 'regular');
+          doc.text(`${data.level.toUpperCase()} LEVEL`, 60, 75, {
+            align: 'center',
+            width: doc.page.width - 120
+          });
+        }
+
+        // Move below header
+        doc.y = headerHeight + 30;
+
+        // Info box with topic
+        if (data.topic) {
+          const infoBoxY = doc.y;
+          doc.roundedRect(60, infoBoxY, doc.page.width - 120, 60, 5)
+             .fill(colors.light);
+
+          doc.fontSize(10)
+             .fillColor(colors.textLight);
+          this._setFont(doc, 'bold');
+          doc.text('TOPIC:', 75, infoBoxY + 15);
+
+          doc.fontSize(13)
+             .fillColor(colors.text);
+          this._setFont(doc, 'regular');
+          doc.text(data.topic, 75, infoBoxY + 32, {
+            width: doc.page.width - 150
+          });
+
+          doc.y = infoBoxY + 75;
+        }
 
         doc.moveDown(1);
-        doc.strokeColor('#3498db')
-           .lineWidth(2)
-           .moveTo(50, doc.y)
-           .lineTo(545, doc.y)
-           .stroke();
-        doc.moveDown(1.5);
 
-        // Level and topic
-        if (data.level) {
-          doc.fontSize(12)
-             .fillColor('#e74c3c')
-             .text(`Level: ${data.level.toUpperCase()}`, { align: 'center' });
-          doc.moveDown(0.5);
-        }
-
-        if (data.topic) {
-          doc.fontSize(11)
-             .fillColor('#7f8c8d')
-             .text(`Topic: ${data.topic}`, { align: 'center' });
-          doc.moveDown(1.5);
-        }
-
-        // Content sections
+        // Content sections with modern styling
         if (data.sections && Array.isArray(data.sections)) {
           data.sections.forEach((section, index) => {
+            // Check if we need a new page
             if (doc.y > 650) {
               doc.addPage();
+              doc.y = 60;
             }
 
-            // Section heading
+            const sectionStartY = doc.y;
+
+            // Section number badge
+            const badgeSize = 35;
+            const badgeX = 60;
+            const badgeY = sectionStartY;
+
+            // Colored circle badge
+            doc.circle(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2)
+               .fill(colors.secondary);
+
             doc.fontSize(16)
-               .fillColor('#3498db');
+               .fillColor('#FFFFFF');
             this._setFont(doc, 'bold');
-            doc.text(section.heading || `Section ${index + 1}`, { underline: true });
-            doc.moveDown(0.5);
+            doc.text(`${index + 1}`, badgeX, badgeY + 10, {
+              width: badgeSize,
+              align: 'center'
+            });
 
-            // Section content
+            // Section heading
+            doc.fontSize(18)
+               .fillColor(colors.dark);
+            this._setFont(doc, 'bold');
+            doc.text(section.heading || `Section ${index + 1}`, badgeX + badgeSize + 15, badgeY + 5);
+
+            // Decorative underline
+            const lineY = badgeY + 30;
+            doc.moveTo(badgeX + badgeSize + 15, lineY)
+               .lineTo(doc.page.width - 60, lineY)
+               .lineWidth(2)
+               .strokeColor(colors.accent)
+               .stroke();
+
+            doc.y = lineY + 20;
+
+            // Section content box
+            const contentStartY = doc.y;
+            const contentPadding = 20;
+
+            // Parse and format content with better styling
+            const formattedContent = this._formatContentWithStyle(section.content);
+
+            // First, measure the text height by rendering it temporarily
+            const measureY = doc.y;
             doc.fontSize(11)
-               .fillColor('#000000');
+               .fillColor(colors.text);
             this._setFont(doc, 'regular');
-            doc.text(section.content, {
-                 width: 495,
-                 align: 'left',
-                 lineGap: 2
-               });
+            doc.text(formattedContent, 60 + contentPadding, contentStartY + 5, {
+              width: doc.page.width - 120 - (contentPadding * 2),
+              align: 'left',
+              lineGap: 5
+            });
 
-            doc.moveDown(1.5);
+            // Calculate the actual content height
+            const contentHeight = doc.y - contentStartY + 20;
+
+            // Now draw the background box with the measured height
+            doc.roundedRect(60, contentStartY - 10, doc.page.width - 120, contentHeight, 3)
+               .fillOpacity(0.08)
+               .fill(colors.light)
+               .fillOpacity(1);
+
+            // Re-render the text on top of the background
+            doc.fontSize(11)
+               .fillColor(colors.text);
+            this._setFont(doc, 'regular');
+            doc.text(formattedContent, 60 + contentPadding, contentStartY + 5, {
+              width: doc.page.width - 120 - (contentPadding * 2),
+              align: 'left',
+              lineGap: 5
+            });
+
+            doc.moveDown(2);
           });
         } else if (data.content) {
+          // Single content block with nice formatting
           doc.fontSize(11)
-             .fillColor('#000000');
+             .fillColor(colors.text);
           this._setFont(doc, 'regular');
           doc.text(data.content, {
-               width: 495,
-               align: 'left',
-               lineGap: 2
-             });
+            width: doc.page.width - 120,
+            align: 'left',
+            lineGap: 5
+          });
+        }
+
+        // Add footer to all pages
+        const range = doc.bufferedPageRange();
+        for (let i = 0; i < range.count; i++) {
+          doc.switchToPage(range.start + i);
+
+          // Footer line
+          const footerY = doc.page.height - 50;
+          doc.moveTo(60, footerY)
+             .lineTo(doc.page.width - 60, footerY)
+             .lineWidth(1)
+             .strokeColor(colors.textLight)
+             .stroke();
+
+          // Page number
+          doc.fontSize(9)
+             .fillColor(colors.textLight);
+          this._setFont(doc, 'regular');
+          doc.text(
+            `Page ${i + 1} of ${range.count}`,
+            60,
+            footerY + 10,
+            { align: 'center', width: doc.page.width - 120 }
+          );
+
+          // Branding
+          doc.fontSize(8)
+             .fillColor(colors.textLight);
+          doc.text(
+            '✨ Generated by AI Japanese Tutor',
+            60,
+            footerY + 25,
+            { align: 'center', width: doc.page.width - 120 }
+          );
         }
 
         doc.end();
@@ -554,15 +761,44 @@ class DocumentGenerationService {
    * @param {string} prompt - User's request for document generation
    * @param {string} level - User's learning level
    * @param {string} format - Output format (pdf, docx, markdown)
+   * @param {Object} options - Generation options (provider, model)
    * @returns {Promise<Object>} - Generated document info
    */
-  async generateDocumentWithLLM(prompt, level = 'beginner', format = 'pdf') {
-    if (!this.ollamaService) {
-      throw new Error('LLM service not available. Please configure Ollama service.');
+  async generateDocumentWithLLM(prompt, level = 'beginner', format = 'pdf', options = {}) {
+    // Use ModelProviderService if available, otherwise fall back to OllamaService
+    const useModelProvider = this.modelProviderService && this.modelProviderService.isInitialized;
+
+    if (!useModelProvider && !this.ollamaService) {
+      throw new Error('LLM service not available. Please configure a model provider.');
     }
 
     try {
-      console.log(`🤖 Generating ${format.toUpperCase()} document with LLM for: "${prompt}"`);
+      const provider = options.provider || 'ollama';
+      const model = options.model || null;
+
+      console.log(`🤖 Generating ${format.toUpperCase()} document with ${provider}${model ? `/${model}` : ''} for: "${prompt}"`);
+
+      // Determine optimal token limit based on provider and request complexity
+      const tokenLimits = {
+        'mistral': 16000,    // Mistral models support up to 32K, using 16K for safety
+        'groq': 8000,        // Groq varies by model, 8K is safe default
+        'cerebras': 8000,    // Cerebras supports 8K
+        'openrouter': 8000,  // Varies by model
+        'ollama': 8000       // Depends on model, 8K is safe for most
+      };
+
+      const maxTokens = tokenLimits[provider] || 8000;
+      console.log(`📊 Using token limit: ${maxTokens} tokens for ${provider}`);
+
+      // Detect if this is a comprehensive request (needs more tokens)
+      const isComprehensive = prompt.toLowerCase().includes('comprehensive') ||
+                              prompt.toLowerCase().includes('complete') ||
+                              prompt.toLowerCase().includes('whole') ||
+                              prompt.toLowerCase().includes('n5-n4') ||
+                              prompt.toLowerCase().includes('all chapters');
+
+      const effectiveMaxTokens = isComprehensive ? maxTokens : Math.floor(maxTokens * 0.6);
+      console.log(`📝 Document complexity: ${isComprehensive ? 'Comprehensive' : 'Standard'} (${effectiveMaxTokens} tokens)`);
 
       // Create LLM prompt for document generation
       const systemPrompt = `You are a Japanese language expert creating educational materials. Generate a comprehensive, well-structured document based on the user's request.
@@ -576,25 +812,98 @@ Format your response as a structured document with:
 
 Make the content educational, engaging, and suitable for ${level} learners.`;
 
-      const userPrompt = `Create a Japanese learning document about: ${prompt}
+      // Adjust prompt based on comprehensiveness
+      let userPrompt;
+      if (isComprehensive) {
+        userPrompt = `Create a COMPREHENSIVE Japanese learning document about: ${prompt}
+
+This is a large-scale study guide. Please structure the content with:
+1. A clear introduction explaining the scope
+2. MULTIPLE detailed chapters/sections (at least 5-8), each covering a major topic
+3. For EACH chapter, include:
+   - Clear explanations with examples
+   - Vocabulary lists with translations
+   - Grammar points with usage examples
+   - Practice exercises with answers
+4. Summary and review section at the end
+
+Use markdown headings (## for chapters, ### for subsections) to organize the content clearly.
+Make this as detailed and educational as possible within the token limit.`;
+      } else {
+        userPrompt = `Create a Japanese learning document about: ${prompt}
 
 Please structure the content with:
 1. An introduction
-2. Main content divided into logical sections
-3. Practical examples
+2. Main content divided into logical sections (2-4 sections)
+3. Practical examples with translations
 4. Key takeaways or summary
 
 Format the content in a clear, organized manner suitable for a study guide.`;
+      }
 
       // Generate content using LLM
-      const llmResponse = await this.ollamaService.tutorChat(userPrompt, {
-        level,
-        topic: prompt,
-        previous_context: systemPrompt
-      });
+      let llmResponse;
+
+      if (useModelProvider) {
+        // Use ModelProviderService for multi-provider support
+        // For cloud providers, use proper message array format with system + user messages
+        try {
+          if (provider !== 'ollama') {
+            // Cloud provider - use message array format
+            const messages = [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ];
+            llmResponse = await this.modelProviderService.generate(messages, {
+              provider: provider,
+              model: model,
+              temperature: 0.7,
+              maxTokens: effectiveMaxTokens
+            });
+          } else {
+            // Ollama - use concatenated prompt format
+            const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+            llmResponse = await this.modelProviderService.generate(fullPrompt, {
+              provider: provider,
+              model: model,
+              temperature: 0.7,
+              maxTokens: effectiveMaxTokens
+            });
+          }
+        } catch (error) {
+          // If rate limited or other error with cloud provider, fall back to Ollama
+          if (error.status === 429 || error.code === 'rate_limit_exceeded') {
+            console.log(`⚠️  ${provider} rate limited, falling back to Ollama`);
+            const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+            llmResponse = await this.modelProviderService.generate(fullPrompt, {
+              provider: 'ollama',
+              model: null,
+              temperature: 0.7,
+              maxTokens: effectiveMaxTokens
+            });
+          } else {
+            throw error; // Re-throw if not a rate limit error
+          }
+        }
+      } else {
+        // Fallback to OllamaService
+        const ollamaResult = await this.ollamaService.tutorChat(userPrompt, {
+          level,
+          topic: prompt,
+          previous_context: systemPrompt
+        });
+
+        // Extract response from Ollama result (may be object with metadata)
+        llmResponse = typeof ollamaResult === 'object' && ollamaResult.response
+          ? ollamaResult.response
+          : ollamaResult;
+      }
+
+      // Ensure llmResponse is a string
+      const responseText = typeof llmResponse === 'string' ? llmResponse : String(llmResponse);
 
       // Parse the response to extract title and sections
-      const sections = this._parseDocumentContent(llmResponse);
+      const sections = this._parseDocumentContent(responseText);
 
       // Generate the document based on format
       let filepath;
@@ -603,7 +912,7 @@ Format the content in a clear, organized manner suitable for a study guide.`;
         level: level,
         topic: prompt,
         sections: sections.sections,
-        content: llmResponse
+        content: responseText
       };
 
       if (format === 'pdf') {
@@ -624,13 +933,33 @@ Format the content in a clear, organized manner suitable for a study guide.`;
         filename: path.basename(filepath),
         format,
         title: data.title,
-        content: llmResponse
+        content: responseText
       };
 
     } catch (error) {
       console.error('❌ LLM document generation error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Format content with improved styling (better line breaks, checkboxes, etc.)
+   * @private
+   */
+  _formatContentWithStyle(content) {
+    if (!content) return '';
+
+    // Clean up excessive whitespace
+    let formatted = content.trim();
+
+    // Convert markdown-style checkboxes to better format
+    formatted = formatted.replace(/\[x\]/gi, '✓');
+    formatted = formatted.replace(/\[ \]/g, '☐');
+
+    // Ensure consistent line breaks
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+    return formatted;
   }
 
   /**

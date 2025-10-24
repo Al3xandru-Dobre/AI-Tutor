@@ -18,8 +18,10 @@ function parseMarkdown(text) {
         .replace(/>/g, '&gt;');
 
     // Code blocks (must come before headers and other processing)
-    html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
-        return '<pre><code>' + code.trim() + '</code></pre>';
+    // Support both plain code blocks and language-specific ones
+    html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, function(_match, lang, code) {
+        const language = lang ? ` class="language-${lang}"` : '';
+        return '<pre><code' + language + '>' + code.trim() + '</code></pre>';
     });
 
     // Tables (process before other replacements)
@@ -51,7 +53,10 @@ function parseMarkdown(text) {
         return tableHTML;
     });
 
-    // Headers (must be at start of line)
+    // Headers (must be at start of line) - process in order from most specific to least
+    html = html.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
+    html = html.replace(/^##### (.*$)/gim, '<h5>$1</h5>');
+    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
@@ -60,8 +65,15 @@ function parseMarkdown(text) {
     html = html.replace(/^---$/gim, '<hr>');
     html = html.replace(/^\*\*\*$/gim, '<hr>');
 
-    // Blockquotes
-    html = html.replace(/^&gt; (.+)$/gim, '<blockquote>$1</blockquote>');
+    // Blockquotes - handle consecutive blockquotes properly
+    html = html.replace(/^&gt; (.+)$/gim, '::BLOCKQUOTE::$1');
+    html = html.replace(/(::BLOCKQUOTE::.+?)(?=\n(?!::BLOCKQUOTE::)|$)/gs, function(match) {
+        const lines = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => line.replace(/^::BLOCKQUOTE::/, ''))
+            .join('<br>');
+        return '<blockquote>' + lines + '</blockquote>';
+    });
 
     // Lists (unordered) - improved to handle multiple lines
     html = html.replace(/^\* (.+)$/gim, '::UL_ITEM::$1');
@@ -93,6 +105,9 @@ function parseMarkdown(text) {
     html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Strikethrough
+    html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
 
     // Inline code
     html = html.replace(/`(.*?)`/g, '<code>$1</code>');

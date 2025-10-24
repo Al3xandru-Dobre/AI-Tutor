@@ -8,6 +8,7 @@ const healthRoutes = require('./healthRoute');
 const internetAugmentationRoutes = require('./internetAugumentationRoute');
 const orchestrationRoutes = require('./orchestrationRoute');
 const ragRoutes = require('./ragRoute');
+const modelProviderRoutes = require('./modelProviderRoute');
 
 // Mount individual route modules (no /api prefix - already added in server.js)
 router.use('/', healthRoutes);
@@ -18,5 +19,6 @@ router.use('/chromadb', chromaDBRoutes);
 router.use('/', internetAugmentationRoutes);
 router.use('/', orchestrationRoutes);
 router.use('/rag', ragRoutes);
+router.use('/models', modelProviderRoutes);
 
 module.exports = router;

@@ -318,9 +318,10 @@
 
         .header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--secondary) 100%);
-            padding: 20px 32px;
+            padding: 10px 32px;
             position: relative;
             overflow: hidden;
+            max-width: 100%;
         }
 
         .header::before {
@@ -341,12 +342,18 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 2px;
+        }
+
+        .header-title-with-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .sidebar-toggle {
             position: absolute;
-            left: 0;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(255, 255, 255, 0.1);
@@ -357,6 +364,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             backdrop-filter: blur(10px);
+            z-index: 3;
         }
 
         .sidebar-toggle:hover {
@@ -371,23 +379,23 @@
 
         .theme-toggle-btn {
             position: absolute;
-            right: 140px;
+            right: 16px;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 10px;
-            border-radius: 10px;
+            padding: 8px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            z-index: 2;
+            width: 36px;
+            height: 36px;
+            z-index: 3;
         }
 
         .theme-toggle-btn:hover {
@@ -398,8 +406,8 @@
         }
 
         .theme-toggle-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             transition: all 0.3s ease;
         }
 
@@ -412,25 +420,28 @@
             fill: none;
         }
 
-        .header-export-btn {
+        .header-export-container {
             position: absolute;
-            right: 0;
+            right: 72px;
             top: 50%;
             transform: translateY(-50%);
+            z-index: 3;
+        }
+
+        .header-export-btn {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 10px 16px;
-            border-radius: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
+            gap: 6px;
+            font-size: 13px;
             font-weight: 600;
-            z-index: 2;
         }
 
         .header-export-btn:hover {
@@ -441,12 +452,12 @@
         }
 
         .header-export-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
         }
 
         .header h1 {
-            font-size: 1.8em;
+            font-size: 1.4em;
             font-weight: 700;
             background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
             -webkit-background-clip: text;
@@ -456,19 +467,28 @@
         }
 
         .header h2 {
-            font-size: 1.2em;
-            font-weight: 500;
+            font-size: 0.95em;
+            font-weight: 400;
             background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin: 4px 0 0 0;
-            opacity: 0.9;
+            margin: 0;
+            opacity: 0.85;
         }
 
         .header .flag {
-            font-size: 1.5em;
+            font-size: 1.3em;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            display: inline-block;
+        }
+
+        .header .flag:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
         }
 
         .chat-container {
@@ -2034,16 +2054,18 @@
 /* Tables */
 .message-content table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin: 16px 0;
     background: var(--surface-light);
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
 }
 
 .message-content table thead {
-    background: var(--primary);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 100%);
     color: white;
 }
 
@@ -2056,17 +2078,54 @@
 
 .message-content table th {
     font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85em;
-    letter-spacing: 0.5px;
+    font-size: 0.875em;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.message-content table th:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.message-content table tbody tr {
+    transition: all 0.15s ease;
 }
 
 .message-content table tbody tr:hover {
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.message-content table tbody tr:nth-child(even) {
+    background: rgba(99, 102, 241, 0.02);
+}
+
+.message-content table tbody tr:nth-child(even):hover {
+    background: rgba(99, 102, 241, 0.06);
 }
 
 .message-content table tbody tr:last-child td {
     border-bottom: none;
+}
+
+.message-content table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.message-content table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+.message-content table td {
+    color: var(--text-primary);
+    font-size: 0.9em;
+    line-height: 1.6;
 }
 
 /* Headers */
@@ -2076,42 +2135,51 @@
 .message-content h4,
 .message-content h5,
 .message-content h6 {
-    margin: 20px 0 12px 0;
+    margin: 24px 0 12px 0;
     font-weight: 600;
     line-height: 1.3;
     color: var(--primary);
 }
 
 .message-content h1 {
-    font-size: 1.8em;
+    font-size: 1.6em;
     border-bottom: 2px solid var(--primary);
-    padding-bottom: 8px;
+    padding-bottom: 6px;
+    margin-top: 0;
 }
 
 .message-content h2 {
-    font-size: 1.5em;
+    font-size: 1.4em;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
+    padding-bottom: 5px;
 }
 
 .message-content h3 {
-    font-size: 1.3em;
+    font-size: 1.2em;
 }
 
 .message-content h4 {
-    font-size: 1.1em;
+    font-size: 1.05em;
+}
+
+.message-content h5 {
+    font-size: 1em;
+}
+
+.message-content h6 {
+    font-size: 0.95em;
 }
 
 /* Lists */
 .message-content ul,
 .message-content ol {
     margin: 12px 0;
-    padding-left: 24px;
+    padding-left: 28px;
 }
 
 .message-content li {
-    margin: 6px 0;
-    line-height: 1.6;
+    margin: 8px 0;
+    line-height: 1.7;
 }
 
 .message-content ul li {
@@ -2127,7 +2195,7 @@
 .message-content ol ol,
 .message-content ul ol,
 .message-content ol ul {
-    margin: 4px 0;
+    margin: 6px 0;
 }
 
 /* Code blocks */
@@ -2135,46 +2203,50 @@
     background: var(--surface-light);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 16px;
-    margin: 12px 0;
+    padding: 14px;
+    margin: 14px 0;
     overflow-x: auto;
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 0.9em;
+    font-size: 0.875em;
     line-height: 1.5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .message-content code {
-    background: rgba(99, 102, 241, 0.1);
-    padding: 2px 6px;
+    background: rgba(99, 102, 241, 0.12);
+    padding: 3px 6px;
     border-radius: 4px;
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 0.9em;
+    font-size: 0.875em;
     color: var(--primary);
+    border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .message-content pre code {
     background: none;
     padding: 0;
     color: inherit;
+    border: none;
 }
 
 /* Blockquotes */
 .message-content blockquote {
     border-left: 4px solid var(--primary);
     padding-left: 16px;
-    margin: 12px 0;
+    margin: 14px 0;
     color: var(--text-secondary);
     font-style: italic;
     background: rgba(99, 102, 241, 0.05);
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 /* Horizontal rules */
 .message-content hr {
     border: none;
     border-top: 2px solid var(--border);
-    margin: 20px 0;
+    margin: 24px 0;
 }
 
 /* Strong and emphasis */
@@ -2187,16 +2259,26 @@
     font-style: italic;
 }
 
+/* Strikethrough */
+.message-content del {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 /* Links */
 .message-content a {
     color: var(--primary-light);
     text-decoration: none;
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
     transition: all 0.2s ease;
 }
 
 .message-content a:hover {
     border-bottom-color: var(--primary-light);
+    background: rgba(99, 102, 241, 0.08);
+    padding: 1px 3px;
+    border-radius: 2px;
 }
 
 /* Paragraphs */
@@ -2210,8 +2292,8 @@
     max-width: 100%;
     height: auto;
     border-radius: 8px;
-    margin: 12px 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 14px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Light theme overrides for markdown */

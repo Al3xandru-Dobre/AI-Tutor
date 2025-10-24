@@ -165,15 +165,24 @@ async function getDocumentStats(req, res) {
 async function generateWithLLM(req, res) {
     try {
         const { documentService } = getServices();
-        const { prompt, level = 'beginner', format = 'pdf' } = req.body;
+        const {
+            prompt,
+            level = 'beginner',
+            format = 'pdf',
+            provider = null,
+            model = null
+        } = req.body;
 
         if (!prompt || prompt.trim().length === 0) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log(`🤖 LLM Document Generation Request: "${prompt}" (${format})`);
+        console.log(`🤖 LLM Document Generation Request: "${prompt}" (${format}) with ${provider || 'default'}${model ? `/${model}` : ''}`);
 
-        const result = await documentService.generateDocumentWithLLM(prompt, level, format);
+        const result = await documentService.generateDocumentWithLLM(prompt, level, format, {
+            provider,
+            model
+        });
 
         // Send the file for download
         res.download(result.filepath, result.filename, (err) => {

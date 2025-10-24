@@ -9,6 +9,7 @@ const TutorOrchestratorService = require('../services/TutoreOrchestratorService'
 const ConversationService = require('../services/conversationService');
 const PrivacyHistoryRAGService = require('../services/Privacy-Aware HistoryRAGService');
 const DocumentGenerationService = require('../services/DocumentGenerationService');
+const ModelProviderService = require('../services/ModelProviderService');
 
 // Environment variables
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -17,6 +18,7 @@ const SEARCH_ENGINE_ID = process.env.GOOGLE_SEARCH_ENGINE_ID;
 // Service instances (singleton pattern)
 let services = null;
 let servicesInitialized = false;
+
 
 /**
  * Initialize all services
@@ -40,6 +42,7 @@ async function initializeAllServices() {
     const internetService = new InternetAugmentationService(GOOGLE_API_KEY, SEARCH_ENGINE_ID);
     const history = new ConversationService();
     const historyRAG = new PrivacyHistoryRAGService(history);
+    const modelProvider = new ModelProviderService();
 
     // Enhanced RAG Service with ChromaDB (must be before orchestrator)
     const rag = new EnhancedRAGService({
@@ -53,7 +56,8 @@ async function initializeAllServices() {
 
     // Orchestrator and Document Service (depend on rag)
     const orchestrator = new TutorOrchestratorService(rag, internetService, ollama, historyRAG);
-    const documentService = new DocumentGenerationService(ollama);
+    orchestrator.setModelProvider(modelProvider);
+    const documentService = new DocumentGenerationService(ollama, modelProvider);
 
     // Integrated RAG Service (Advanced features)
     const advancedRag = new IntegratedRAGService({
@@ -118,6 +122,17 @@ async function initializeAllServices() {
     console.log('6️⃣  Checking Internet Augmentation Service...');
     console.log(`   ${internetService.isConfigured() ? '✅' : '⚠️ '} Internet service: ${internetService.isConfigured() ? 'configured' : 'using fallback mode'}\n`);
 
+    // Step 7: Initialize Model Provider Service
+    console.log('7️⃣  Initializing Model Provider Service...');
+    try {
+      await modelProvider.initialize(ollama);
+      console.log('   ✅ Model Provider service ready!\n');
+    } catch (error) {
+      console.error('   ❌ Model Provider initialization failed:', error.message);
+      console.log('   ⚠️  Continuing without model provider...\n');
+      // Don't throw - allow app to continue without model provider
+    }
+
     console.log('🎉 All services initialized successfully!\n');
 
     // Cache service instances
@@ -129,7 +144,8 @@ async function initializeAllServices() {
       history,
       historyRAG,
       orchestrator,
-      documentService
+      documentService,
+      modelProvider
     };
 
     servicesInitialized = true;

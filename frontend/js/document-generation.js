@@ -204,6 +204,11 @@ function showLLMDocumentModal() {
                         <option value="advanced">Advanced</option>
                     </select>
 
+                    <label class="form-label">AI Model</label>
+                    <div id="llmModelSelector" class="llm-model-selector">
+                        <div class="loading-models">Loading available models...</div>
+                    </div>
+
                     <label class="form-label">Document Format</label>
                     <div class="format-buttons-grid">
                         <button class="format-choice-btn active" data-format="pdf">
@@ -240,12 +245,179 @@ function showLLMDocumentModal() {
         });
     });
 
+    // Load model selector
+    loadLLMModelSelector();
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeLLMDocumentModal();
         }
     });
+}
+
+/**
+ * Load model selector for LLM document generation
+ */
+async function loadLLMModelSelector() {
+    const container = document.getElementById('llmModelSelector');
+    if (!container) return;
+
+    try {
+        // Get current model selection from main model selector if available
+        let currentProvider = 'ollama';
+        let currentModel = null;
+
+        if (typeof getCurrentModelSelection === 'function') {
+            const selection = getCurrentModelSelection();
+            currentProvider = selection.provider || 'ollama';
+            currentModel = selection.model;
+        }
+
+        // Fetch available providers
+        const response = await fetch('/api/models/providers');
+        if (!response.ok) throw new Error('Failed to load providers');
+
+        const data = await response.json();
+        const { providers, current } = data;
+
+        // Use current provider from main selector if available
+        const activeProvider = providers[currentProvider] ? currentProvider : current;
+
+        // Render provider selector and models
+        let html = '<div class="llm-provider-selector">';
+
+        // Provider buttons
+        html += '<div class="llm-provider-buttons">';
+        Object.keys(providers).forEach(providerKey => {
+            const provider = providers[providerKey];
+            if (provider.available) {
+                const isActive = providerKey === activeProvider ? 'active' : '';
+                const speedEmoji = getSpeedEmoji(provider.speed);
+                html += `
+                    <button class="llm-provider-btn ${isActive}" data-provider="${providerKey}" onclick="selectLLMProvider('${providerKey}')">
+                        <span class="provider-emoji">${speedEmoji}</span>
+                        <span class="provider-name">${providerKey}</span>
+                    </button>
+                `;
+            }
+        });
+        html += '</div>';
+
+        // Model list container
+        html += '<div id="llmModelList" class="llm-model-list"></div>';
+        html += '</div>';
+
+        container.innerHTML = html;
+
+        // Load models for active provider
+        await loadLLMModels(activeProvider, currentModel);
+
+    } catch (error) {
+        console.error('Error loading LLM model selector:', error);
+        container.innerHTML = '<div class="error-message">Failed to load models. Using default.</div>';
+    }
+}
+
+/**
+ * Select provider for LLM document generation
+ */
+async function selectLLMProvider(provider) {
+    // Update active state
+    document.querySelectorAll('.llm-provider-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.provider === provider) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Load models for selected provider
+    await loadLLMModels(provider);
+}
+
+/**
+ * Load models for selected provider in LLM modal
+ */
+async function loadLLMModels(provider, preselectedModel = null) {
+    const modelList = document.getElementById('llmModelList');
+    if (!modelList) return;
+
+    modelList.innerHTML = '<div class="loading-models">Loading models...</div>';
+
+    try {
+        const response = await fetch(`/api/models/list?provider=${provider}`);
+        if (!response.ok) throw new Error('Failed to load models');
+
+        const data = await response.json();
+        const models = data.models || [];
+
+        if (models.length === 0) {
+            modelList.innerHTML = '<div class="no-models">No models available</div>';
+            return;
+        }
+
+        let html = '';
+        models.forEach((modelObj, index) => {
+            const modelId = typeof modelObj === 'string' ? modelObj : modelObj.id;
+            const modelName = typeof modelObj === 'string' ? modelObj : modelObj.name || modelObj.id;
+            const modelDesc = typeof modelObj === 'object' ? modelObj.description : 'AI language model';
+
+            // Select first model by default, or preselected model if provided
+            const isActive = (preselectedModel && modelId === preselectedModel) || (!preselectedModel && index === 0) ? 'active' : '';
+
+            html += `
+                <button class="llm-model-btn ${isActive}" data-provider="${provider}" data-model="${modelId}" onclick="selectLLMModel('${provider}', '${modelId}')">
+                    <div class="llm-model-name">${modelName}</div>
+                    <div class="llm-model-desc">${modelDesc}</div>
+                </button>
+            `;
+        });
+
+        modelList.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error loading models:', error);
+        modelList.innerHTML = '<div class="error-message">Failed to load models</div>';
+    }
+}
+
+/**
+ * Select model for LLM document generation
+ */
+function selectLLMModel(provider, model) {
+    document.querySelectorAll('.llm-model-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.provider === provider && btn.dataset.model === model) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+/**
+ * Get current LLM model selection
+ */
+function getCurrentLLMModelSelection() {
+    const activeProviderBtn = document.querySelector('.llm-provider-btn.active');
+    const activeModelBtn = document.querySelector('.llm-model-btn.active');
+
+    return {
+        provider: activeProviderBtn ? activeProviderBtn.dataset.provider : null,
+        model: activeModelBtn ? activeModelBtn.dataset.model : null
+    };
+}
+
+/**
+ * Get speed emoji for provider (reuse from model-selector.js if available)
+ */
+function getSpeedEmoji(speed) {
+    const emojiMap = {
+        'ultra-fast': '⚡',
+        'very-fast': '🚀',
+        'fast': '💨',
+        'medium': '🔄',
+        'slow': '🐢'
+    };
+    return emojiMap[speed] || '🤖';
 }
 
 /**
@@ -267,6 +439,9 @@ async function generateLLMDocument() {
     const activeFormat = document.querySelector('.format-choice-btn.active');
     const format = activeFormat?.dataset?.format || 'pdf';
 
+    // Get selected model and provider
+    const modelSelection = getCurrentLLMModelSelection();
+
     if (!prompt) {
         showToast('Please describe what you want to learn about', 'error');
         return;
@@ -286,7 +461,13 @@ async function generateLLMDocument() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prompt, level, format })
+            body: JSON.stringify({
+                prompt,
+                level,
+                format,
+                provider: modelSelection.provider,
+                model: modelSelection.model
+            })
         });
 
         if (!response.ok) {

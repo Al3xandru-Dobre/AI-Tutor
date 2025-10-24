@@ -406,3 +406,35 @@ body.light-theme .chat-input-area {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
+
+/* Light Theme - Enhanced Tables */
+body.light-theme .message-content table {
+    background: #ffffff;
+    border-color: #e0e0e0;
+    box-shadow: 0 4px 16px rgba(193, 39, 45, 0.08);
+}
+
+body.light-theme .message-content table thead {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+}
+
+body.light-theme .message-content table th,
+body.light-theme .message-content table td {
+    border-bottom-color: #e0e0e0;
+}
+
+body.light-theme .message-content table tbody tr:hover {
+    background: rgba(193, 39, 45, 0.05);
+}
+
+body.light-theme .message-content table tbody tr:nth-child(even) {
+    background: rgba(193, 39, 45, 0.02);
+}
+
+body.light-theme .message-content table tbody tr:nth-child(even):hover {
+    background: rgba(193, 39, 45, 0.05);
+}
+
+body.light-theme .message-content table td {
+    color: #2d2d2d;
+}
