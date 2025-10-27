@@ -120,6 +120,11 @@ Your feedback:`);
     }
 }
 
+// Navigation Functions
+function goToNotebook() {
+    window.location.href = 'notebook.html';
+}
+
 // Format date for display
 function formatDate(dateString) {
     const date = new Date(dateString);

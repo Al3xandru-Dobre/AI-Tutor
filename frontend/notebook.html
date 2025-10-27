@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook - Japanese Learning Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="light-theme.css">
+    <link rel="stylesheet" href="notebook.css">
+</head>
+<body>
+    <div class="app-layout" id="appLayout">
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <span class="plus-icon">+</span> New Chat
+                </button>
+                <button class="ai-doc-gen-btn" onclick="showLLMDocumentModal()">
+                    <span>🤖</span> AI Document Generator
+                </button>
+                <button class="notebook-btn active" onclick="goToNotebook()">
+                    <span>📓</span> Notebook
+                </button>
+            </div>
+
+            <div class="notebook-nav">
+                <div class="nav-item active" data-section="vocabulary" onclick="switchSection('vocabulary')">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">Vocabulary</span>
+                    <span class="nav-count" id="vocabCount">0</span>
+                </div>
+                <div class="nav-item" data-section="exercises" onclick="switchSection('exercises')">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Exercises</span>
+                    <span class="nav-count" id="exerciseCount">0</span>
+                </div>
+                <div class="nav-item" data-section="repetition" onclick="switchSection('repetition')">
+                    <span class="nav-icon">🔄</span>
+                    <span class="nav-text">Practice</span>
+                    <span class="nav-count" id="practiceCount">0</span>
+                </div>
+                <div class="nav-item" data-section="guides" onclick="switchSection('guides')">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-text">Study Guides</span>
+                </div>
+                <div class="nav-item" data-section="reminders" onclick="switchSection('reminders')">
+                    <span class="nav-icon">⏰</span>
+                    <span class="nav-text">Reminders</span>
+                </div>
+            </div>
+
+            <div class="about-section">
+                <div class="about-title">About</div>
+                <div class="about-content">
+                    <p><strong>Japanese AI Tutor</strong> <span class="version-badge">v1.5</span></p>
+                    <p>Your personal AI-powered Japanese learning companion!</p>
+                    <div class="about-links">
+                        <a href="#" class="about-link" onclick="showHelp()">Help</a>
+                        <a href="#" class="about-link" onclick="showSettings()">Settings</a>
+                        <a href="#" class="about-link" onclick="showFeedback()">Feedback</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="notebook-container">
+            <div class="notebook-header">
+                <div class="header-content">
+                    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12h18M3 6h18M3 18h18"/>
+                        </svg>
+                    </button>
+                    <a href="chat.html" class="flag" title="Return to chat">🇯🇵</a>
+                    <h1>📓 Learning Notebook</h1>
+                    <h2>Your personal Japanese study hub</h2>
+                    <button class="theme-toggle-btn" id="themeToggle" title="Toggle theme">
+                        <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3" stroke="white" stroke-width="2"/>
+                            <line x1="12" y1="21" x2="12" y2="23" stroke="white" stroke-width="2"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="white" stroke-width="2"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="white" stroke-width="2"/>
+                            <line x1="1" y1="12" x2="3" y2="12" stroke="white" stroke-width="2"/>
+                            <line x1="21" y1="12" x2="23" y2="12" stroke="white" stroke-width="2"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="white" stroke-width="2"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="white" stroke-width="2"/>
+                        </svg>
+                        <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vocabulary Section -->
+            <div class="notebook-section active" id="vocabulary-section">
+                <div class="section-header">
+                    <h2>📚 Vocabulary Dictionary</h2>
+                    <button class="add-btn" onclick="showAddVocabularyModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Word
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <input type="text" placeholder="Search vocabulary..." id="vocabSearch" onkeyup="searchVocabulary()">
+                    <select id="levelFilter" onchange="filterVocabulary()">
+                        <option value="all">All Levels</option>
+                        <option value="N5">N5</option>
+                        <option value="N4">N4</option>
+                        <option value="N3">N3</option>
+                        <option value="N2">N2</option>
+                        <option value="N1">N1</option>
+                    </select>
+                    <select id="typeFilter" onchange="filterVocabulary()">
+                        <option value="all">All Types</option>
+                        <option value="noun">Nouns</option>
+                        <option value="verb">Verbs</option>
+                        <option value="adjective">Adjectives</option>
+                        <option value="adverb">Adverbs</option>
+                        <option value="particle">Particles</option>
+                    </select>
+                </div>
+
+                <div class="vocabulary-grid" id="vocabularyGrid">
+                    <!-- Vocabulary cards will be populated here -->
+                </div>
+            </div>
+
+            <!-- Exercises Section -->
+            <div class="notebook-section" id="exercises-section">
+                <div class="section-header">
+                    <h2>✏️ Practice Exercises</h2>
+                    <button class="add-btn" onclick="showExerciseModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Create Exercise
+                    </button>
+                </div>
+
+                <div class="exercise-categories">
+                    <div class="category-card" onclick="startExercise('kanji')">
+                        <div class="category-icon">漢</div>
+                        <h3>Kanji Practice</h3>
+                        <p>Practice writing and reading kanji characters</p>
+                        <div class="difficulty-badge">Intermediate</div>
+                    </div>
+
+                    <div class="category-card" onclick="startExercise('grammar')">
+                        <div class="category-icon">文法</div>
+                        <h3>Grammar Drills</h3>
+                        <p>Test your grammar knowledge</p>
+                        <div class="difficulty-badge">All Levels</div>
+                    </div>
+
+                    <div class="category-card" onclick="startExercise('vocabulary')">
+                        <div class="category-icon">単語</div>
+                        <h3>Vocabulary Quiz</h3>
+                        <p>Test your word knowledge</p>
+                        <div class="difficulty-badge">All Levels</div>
+                    </div>
+
+                    <div class="category-card" onclick="startExercise('listening')">
+                        <div class="category-icon">聞く</div>
+                        <h3>Listening Practice</h3>
+                        <p>Improve your listening skills</p>
+                        <div class="difficulty-badge">Advanced</div>
+                    </div>
+                </div>
+
+                <div class="recent-exercises">
+                    <h3>Recent Practice Sessions</h3>
+                    <div class="exercise-list" id="recentExercises">
+                        <!-- Recent exercises will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repetition Section -->
+            <div class="notebook-section" id="repetition-section">
+                <div class="section-header">
+                    <h2>🔄 Spaced Repetition Practice</h2>
+                    <button class="practice-btn" onclick="startSpacedRepetition()">
+                        <span>🎯</span> Start Practice
+                    </button>
+                </div>
+
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-number">15</div>
+                        <div class="stat-label">Words to Review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">89%</div>
+                        <div class="stat-label">Accuracy Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">7</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">234</div>
+                        <div class="stat-label">Total Learned</div>
+                    </div>
+                </div>
+
+                <div class="repetition-queue">
+                    <h3>Today's Review Queue</h3>
+                    <div class="queue-list" id="reviewQueue">
+                        <!-- Review queue items will be populated here -->
+                    </div>
+                </div>
+
+                <div class="progress-chart">
+                    <h3>Learning Progress</h3>
+                    <canvas id="progressChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Study Guides Section -->
+            <div class="notebook-section" id="guides-section">
+                <div class="section-header">
+                    <h2>📖 Study Guides</h2>
+                    <button class="add-btn" onclick="showGuideModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Create Guide
+                    </button>
+                </div>
+
+                <div class="guide-categories">
+                    <div class="guide-category active" onclick="filterGuides('all')">All Guides</div>
+                    <div class="guide-category" onclick="filterGuides('grammar')">Grammar</div>
+                    <div class="guide-category" onclick="filterGuides('kanji')">Kanji</div>
+                    <div class="guide-category" onclick="filterGuides('culture')">Culture</div>
+                    <div class="guide-category" onclick="filterGuides('phrases')">Phrases</div>
+                </div>
+
+                <div class="guides-grid" id="guidesGrid">
+                    <!-- Study guides will be populated here -->
+                </div>
+            </div>
+
+            <!-- Reminders Section -->
+            <div class="notebook-section" id="reminders-section">
+                <div class="section-header">
+                    <h2>⏰ Study Reminders</h2>
+                    <button class="add-btn" onclick="showReminderModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Set Reminder
+                    </button>
+                </div>
+
+                <div class="reminder-schedule">
+                    <div class="schedule-card">
+                        <h3>Daily Goals</h3>
+                        <div class="goal-item">
+                            <input type="checkbox" id="dailyVocab" checked>
+                            <label for="dailyVocab">Learn 5 new vocabulary words</label>
+                        </div>
+                        <div class="goal-item">
+                            <input type="checkbox" id="dailyGrammar" checked>
+                            <label for="dailyGrammar">Practice grammar for 15 minutes</label>
+                        </div>
+                        <div class="goal-item">
+                            <input type="checkbox" id="dailyReview" checked>
+                            <label for="dailyReview">Review spaced repetition</label>
+                        </div>
+                    </div>
+
+                    <div class="schedule-card">
+                        <h3>Weekly Schedule</h3>
+                        <div class="week-schedule">
+                            <div class="day-item">
+                                <span class="day-name">Monday</span>
+                                <span class="day-task">Kanji Practice</span>
+                            </div>
+                            <div class="day-item">
+                                <span class="day-name">Wednesday</span>
+                                <span class="day-task">Grammar Review</span>
+                            </div>
+                            <div class="day-item">
+                                <span class="day-name">Friday</span>
+                                <span class="day-task">Vocabulary Test</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upcoming-reminders">
+                    <h3>Upcoming Reminders</h3>
+                    <div class="reminder-list" id="reminderList">
+                        <!-- Reminders will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="vocabularyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Vocabulary</h3>
+                <button class="modal-close" onclick="closeModal('vocabularyModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="vocabularyForm">
+                    <div class="form-group">
+                        <label>Japanese Word</label>
+                        <input type="text" id="japaneseWord" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Romaji</label>
+                        <input type="text" id="romajiWord" required>
+                    </div>
+                    <div class="form-group">
+                        <label>English Meaning</label>
+                        <input type="text" id="englishMeaning" required>
+                    </div>
+                    <div class="form-group">
+                        <label>JLPT Level</label>
+                        <select id="jlptLevel">
+                            <option value="N5">N5</option>
+                            <option value="N4">N4</option>
+                            <option value="N3">N3</option>
+                            <option value="N2">N2</option>
+                            <option value="N1">N1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Word Type</label>
+                        <select id="wordType">
+                            <option value="noun">Noun</option>
+                            <option value="verb">Verb</option>
+                            <option value="adjective">Adjective</option>
+                            <option value="adverb">Adverb</option>
+                            <option value="particle">Particle</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Example Sentence</label>
+                        <textarea id="exampleSentence" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="vocabularyNotes" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" onclick="closeModal('vocabularyModal')" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Add Vocabulary</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize notebook functionality
+        let currentSection = 'vocabulary';
+        let vocabularyData = [];
+        let exercisesData = [];
+        let guidesData = [];
+        let remindersData = [];
+
+        // Load saved data
+        function loadData() {
+            const savedVocab = localStorage.getItem('notebookVocabulary');
+            const savedExercises = localStorage.getItem('notebookExercises');
+            const savedGuides = localStorage.getItem('notebookGuides');
+            const savedReminders = localStorage.getItem('notebookReminders');
+
+            if (savedVocab) vocabularyData = JSON.parse(savedVocab);
+            if (savedExercises) exercisesData = JSON.parse(savedExercises);
+            if (savedGuides) guidesData = JSON.parse(savedGuides);
+            if (savedReminders) remindersData = JSON.parse(savedReminders);
+
+            updateAllSections();
+        }
+
+        // Switch between sections
+        function switchSection(section) {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.notebook-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(`${section}-section`).classList.add('active');
+
+            currentSection = section;
+        }
+
+        // Add vocabulary functionality
+        function showAddVocabularyModal() {
+            document.getElementById('vocabularyModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Vocabulary form submission
+        document.getElementById('vocabularyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const vocabulary = {
+                id: Date.now(),
+                japanese: document.getElementById('japaneseWord').value,
+                romaji: document.getElementById('romajiWord').value,
+                english: document.getElementById('englishMeaning').value,
+                level: document.getElementById('jlptLevel').value,
+                type: document.getElementById('wordType').value,
+                example: document.getElementById('exampleSentence').value,
+                notes: document.getElementById('vocabularyNotes').value,
+                addedDate: new Date().toISOString(),
+                reviewCount: 0,
+                masteryLevel: 0
+            };
+
+            vocabularyData.push(vocabulary);
+            localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+
+            updateVocabularyDisplay();
+            closeModal('vocabularyModal');
+            this.reset();
+
+            showNotification('Vocabulary added successfully!', 'success');
+        });
+
+        // Update vocabulary display
+        function updateVocabularyDisplay() {
+            const grid = document.getElementById('vocabularyGrid');
+            grid.innerHTML = '';
+
+            vocabularyData.forEach(word => {
+                const card = document.createElement('div');
+                card.className = 'vocabulary-card';
+                card.innerHTML = `
+                    <div class="vocab-header">
+                        <span class="japanese-text">${word.japanese}</span>
+                        <span class="romaji-text">${word.romaji}</span>
+                    </div>
+                    <div class="vocab-body">
+                        <div class="english-meaning">${word.english}</div>
+                        <div class="vocab-meta">
+                            <span class="level-badge ${word.level.toLowerCase()}">${word.level}</span>
+                            <span class="type-badge">${word.type}</span>
+                        </div>
+                        ${word.example ? `<div class="example-text">${word.example}</div>` : ''}
+                        ${word.notes ? `<div class="vocab-notes">${word.notes}</div>` : ''}
+                    </div>
+                    <div class="vocab-actions">
+                        <button onclick="editVocabulary(${word.id})" class="action-btn edit">✏️</button>
+                        <button onclick="practiceWord(${word.id})" class="action-btn practice">🔄</button>
+                        <button onclick="deleteVocabulary(${word.id})" class="action-btn delete">🗑️</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            document.getElementById('vocabCount').textContent = vocabularyData.length;
+        }
+
+        // Search and filter functionality
+        function searchVocabulary() {
+            const searchTerm = document.getElementById('vocabSearch').value.toLowerCase();
+            const level = document.getElementById('levelFilter').value;
+            const type = document.getElementById('typeFilter').value;
+
+            const filtered = vocabularyData.filter(word => {
+                const matchesSearch = word.japanese.includes(searchTerm) ||
+                                     word.romaji.toLowerCase().includes(searchTerm) ||
+                                     word.english.toLowerCase().includes(searchTerm);
+                const matchesLevel = level === 'all' || word.level === level;
+                const matchesType = type === 'all' || word.type === type;
+
+                return matchesSearch && matchesLevel && matchesType;
+            });
+
+            displayFilteredVocabulary(filtered);
+        }
+
+        function filterVocabulary() {
+            searchVocabulary();
+        }
+
+        function displayFilteredVocabulary(words) {
+            const grid = document.getElementById('vocabularyGrid');
+            grid.innerHTML = '';
+
+            words.forEach(word => {
+                const card = document.createElement('div');
+                card.className = 'vocabulary-card';
+                card.innerHTML = `
+                    <div class="vocab-header">
+                        <span class="japanese-text">${word.japanese}</span>
+                        <span class="romaji-text">${word.romaji}</span>
+                    </div>
+                    <div class="vocab-body">
+                        <div class="english-meaning">${word.english}</div>
+                        <div class="vocab-meta">
+                            <span class="level-badge ${word.level.toLowerCase()}">${word.level}</span>
+                            <span class="type-badge">${word.type}</span>
+                        </div>
+                        ${word.example ? `<div class="example-text">${word.example}</div>` : ''}
+                        ${word.notes ? `<div class="vocab-notes">${word.notes}</div>` : ''}
+                    </div>
+                    <div class="vocab-actions">
+                        <button onclick="editVocabulary(${word.id})" class="action-btn edit">✏️</button>
+                        <button onclick="practiceWord(${word.id})" class="action-btn practice">🔄</button>
+                        <button onclick="deleteVocabulary(${word.id})" class="action-btn delete">🗑️</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Exercise functions
+        function startExercise(type) {
+            showNotification(`Starting ${type} exercise...`, 'info');
+            // Will implement exercise logic
+        }
+
+        function showExerciseModal() {
+            showNotification('Exercise creation coming soon!', 'info');
+        }
+
+        // Spaced repetition functions
+        function startSpacedRepetition() {
+            showNotification('Starting spaced repetition practice...', 'info');
+            // Will implement spaced repetition logic
+        }
+
+        // Guide functions
+        function showGuideModal() {
+            showNotification('Guide creation coming soon!', 'info');
+        }
+
+        function filterGuides(category) {
+            document.querySelectorAll('.guide-category').forEach(cat => {
+                cat.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            // Will implement guide filtering
+        }
+
+        // Reminder functions
+        function showReminderModal() {
+            showNotification('Reminder creation coming soon!', 'info');
+        }
+
+        // Sidebar toggle is handled by js/ui-utils.js
+
+        function goToNotebook() {
+            // Already on notebook page
+        }
+
+        function startNewChat() {
+            window.location.href = 'chat.html';
+        }
+
+        function showLLMDocumentModal() {
+            showNotification('Document generator coming to notebook soon!', 'info');
+        }
+
+        function showHelp() {
+            showNotification('Help documentation coming soon!', 'info');
+        }
+
+        function showSettings() {
+            showNotification('Settings coming soon!', 'info');
+        }
+
+        function showFeedback() {
+            showNotification('Feedback form coming soon!', 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        function updateAllSections() {
+            updateVocabularyDisplay();
+            // Update other sections as needed
+        }
+
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+
+            // Add some sample data for demonstration
+            if (vocabularyData.length === 0) {
+                vocabularyData = [
+                    {
+                        id: 1,
+                        japanese: 'こんにちは',
+                        romaji: 'konnichiwa',
+                        english: 'Hello',
+                        level: 'N5',
+                        type: 'greeting',
+                        example: 'こんにちは、元気ですか？',
+                        notes: 'Common greeting used during the day',
+                        addedDate: new Date().toISOString(),
+                        reviewCount: 3,
+                        masteryLevel: 2
+                    },
+                    {
+                        id: 2,
+                        japanese: '勉強',
+                        romaji: 'benkyou',
+                        english: 'Study',
+                        level: 'N5',
+                        type: 'verb',
+                        example: '毎日日本語を勉強します。',
+                        notes: 'Can be used as a noun or verb',
+                        addedDate: new Date().toISOString(),
+                        reviewCount: 5,
+                        masteryLevel: 3
+                    },
+                    {
+                        id: 3,
+                        japanese: '美しい',
+                        romaji: 'utsukushii',
+                        english: 'Beautiful',
+                        level: 'N4',
+                        type: 'adjective',
+                        example: 'この花は美しいです。',
+                        notes: 'i-adjective',
+                        addedDate: new Date().toISOString(),
+                        reviewCount: 2,
+                        masteryLevel: 1
+                    }
+                ];
+                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+            }
+
+            updateAllSections();
+        });
+
+        // Vocabulary action functions
+        function editVocabulary(id) {
+            showNotification('Edit functionality coming soon!', 'info');
+        }
+
+        function practiceWord(id) {
+            showNotification('Practice functionality coming soon!', 'info');
+        }
+
+        function deleteVocabulary(id) {
+            if (confirm('Are you sure you want to delete this vocabulary?')) {
+                vocabularyData = vocabularyData.filter(word => word.id !== id);
+                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                updateVocabularyDisplay();
+                showNotification('Vocabulary deleted successfully!', 'success');
+            }
+        }
+    </script>
+    <script src="js/app-state.js"></script>
+    <script src="js/ui-utils.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize DOM references for sidebar functionality
+            initializeDOMReferences();
+            initializeSidebarState();
+            initializeTheme();
+        });
+    </script>
+</body>
+</html>
