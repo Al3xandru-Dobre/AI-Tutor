@@ -42,10 +42,14 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // ========================================
 // SERVICE READINESS MIDDLEWARE
 // ========================================
-app.use('/api',(req,res,next) => {
-  try{
-    ensureServicesInitialized();
-    next()
+app.use('/api', (req, res, next) => {
+  // Skip health check endpoints
+  if (req.path.includes('/health')) {
+    return next();
+  }
+  
+  try {
+    ensureServicesInitialized(req, res, next);
   } catch (error) {
     return res.status(503).json({
       error: 'Services not fully initialized',

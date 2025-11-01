@@ -10,6 +10,8 @@ const ConversationService = require('../services/conversationService');
 const PrivacyHistoryRAGService = require('../services/Privacy-Aware HistoryRAGService');
 const DocumentGenerationService = require('../services/DocumentGenerationService');
 const ModelProviderService = require('../services/ModelProviderService');
+const VocabularyService = require('../services/vocabService');
+const NotebookService = require('../services/notebookService');
 
 // Environment variables
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -43,6 +45,8 @@ async function initializeAllServices() {
     const history = new ConversationService();
     const historyRAG = new PrivacyHistoryRAGService(history);
     const modelProvider = new ModelProviderService();
+    const vocabulary = new VocabularyService();
+    const notebook = new NotebookService();
 
     // Enhanced RAG Service with ChromaDB (must be before orchestrator)
     const rag = new EnhancedRAGService({
@@ -133,6 +137,16 @@ async function initializeAllServices() {
       // Don't throw - allow app to continue without model provider
     }
 
+    // Step 8: Initialize Vocabulary Service
+    console.log('8️⃣  Initializing Vocabulary Service...');
+    await vocabulary.initialize();
+    console.log('   ✅ Vocabulary service ready!\n');
+
+    // Step 9: Initialize Notebook Service
+    console.log('9️⃣  Initializing Notebook Service...');
+    await notebook.initialize();
+    console.log('   ✅ Notebook service ready!\n');
+
     console.log('🎉 All services initialized successfully!\n');
 
     // Cache service instances
@@ -145,7 +159,9 @@ async function initializeAllServices() {
       historyRAG,
       orchestrator,
       documentService,
-      modelProvider
+      modelProvider,
+      vocabulary,
+      notebook
     };
 
     servicesInitialized = true;
@@ -176,6 +192,8 @@ function printServiceSummary(services) {
   console.log(`  Internet Search:         ${services.internetService.isConfigured() ? '✅ Configured' : '⚠️  Fallback'}`);
   console.log(`  History RAG:             ${services.historyRAG.isInitialized ? '✅ Ready' : '⚠️  Disabled'}`);
   console.log(`  Conversation History:    ${services.history.isInitialized ? '✅ Ready' : '❌ Not Ready'}`);
+  console.log(`  Vocabulary Service:      ${services.vocabulary.isInitialized ? '✅ Ready' : '❌ Not Ready'}`);
+  console.log(`  Notebook Service:        ${services.notebook.isInitialized ? '✅ Ready' : '❌ Not Ready'}`);
   console.log('');
   console.log('');
 }

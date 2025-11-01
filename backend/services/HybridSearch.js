@@ -1,24 +1,54 @@
 // services/HybridSearchService.js - Combines Semantic and Keyword Search
 
+const CrossEncoderService = require('./CrossEncoderService');
+
 class HybridSearchService {
   constructor(chromaCollection, options = {}) {
     this.collection = chromaCollection;
-    
+
     // Hybrid search weights
     this.semanticWeight = options.semanticWeight || 0.7;
     this.keywordWeight = options.keywordWeight || 0.3;
-    
+
     // Minimum scores for filtering
     this.minSemanticScore = options.minSemanticScore || 0.3;
     this.minKeywordScore = options.minKeywordScore || 0.2;
-    
+
+    // Cross-encoder configuration
+    this.useCrossEncoder = options.useCrossEncoder !== false; // Default to true
+    this.crossEncoder = null;
+    this.crossEncoderInitialized = false;
+
     // Statistics
     this.stats = {
       totalSearches: 0,
       semanticOnlyResults: 0,
       keywordOnlyResults: 0,
-      hybridResults: 0
+      hybridResults: 0,
+      crossEncoderRerankings: 0
     };
+  }
+
+  /**
+   * Initialize the hybrid search service
+   */
+  async initialize() {
+    console.log('🔍 Initializing Hybrid Search Service...');
+
+    if (this.useCrossEncoder) {
+      try {
+        this.crossEncoder = new CrossEncoderService();
+        await this.crossEncoder.initialize();
+        this.crossEncoderInitialized = true;
+        console.log('   ✅ Cross-encoder reranking enabled');
+      } catch (error) {
+        console.warn('   ⚠️  Cross-encoder initialization failed, using fallback reranking');
+        this.crossEncoderInitialized = false;
+      }
+    }
+
+    console.log('   ✅ Hybrid Search Service initialized');
+    return true;
   }
 
   /**
@@ -226,32 +256,58 @@ class HybridSearchService {
   }
 
   /**
-   * Rerank results using cross-encoder (simple version)
-   * In production, use a proper cross-encoder model
+   * Rerank results using cross-encoder model
+   * Falls back to simple reranking if cross-encoder is unavailable
    */
   async rerankResults(results, query, maxResults) {
     console.log('  🔄 Reranking results...');
-    
+
+    // Use real cross-encoder if available
+    if (this.crossEncoderInitialized && this.crossEncoder) {
+      try {
+        const reranked = await this.crossEncoder.rerankHybrid(query, results, {
+          topK: maxResults,
+          crossEncoderWeight: 0.7
+        });
+
+        this.stats.crossEncoderRerankings++;
+        console.log('  ✅ Reranked using cross-encoder model');
+
+        return reranked;
+      } catch (error) {
+        console.warn('  ⚠️  Cross-encoder reranking failed, using fallback:', error.message);
+        return this.fallbackRerank(results, query, maxResults);
+      }
+    } else {
+      // Fallback reranking
+      return this.fallbackRerank(results, query, maxResults);
+    }
+  }
+
+  /**
+   * Fallback reranking based on simple heuristics
+   */
+  fallbackRerank(results, query, maxResults) {
     // Simple reranking based on query-document similarity
     const queryTerms = this.tokenize(query.toLowerCase());
-    
+
     const reranked = results.map(result => {
       const docTerms = this.tokenize(result.content.toLowerCase());
-      
+
       // Calculate additional relevance signals
-      const exactMatches = queryTerms.filter(term => 
+      const exactMatches = queryTerms.filter(term =>
         docTerms.includes(term)
       ).length;
-      
-      const positionScore = docTerms.findIndex(term => 
+
+      const positionScore = docTerms.findIndex(term =>
         queryTerms.includes(term)
       );
-      
+
       // Boost for exact matches and early term positions
-      const rerankBoost = 
-        (exactMatches / queryTerms.length) * 0.3 + 
+      const rerankBoost =
+        (exactMatches / queryTerms.length) * 0.3 +
         (positionScore >= 0 ? (1 / (positionScore + 1)) * 0.2 : 0);
-      
+
       return {
         ...result,
         rerankScore: result.hybridScore + rerankBoost,
@@ -356,20 +412,45 @@ class HybridSearchService {
    * Get service statistics
    */
   getStats() {
-    return {
+    const stats = {
       total_searches: this.stats.totalSearches,
       result_sources: {
         semantic_only: this.stats.semanticOnlyResults,
         keyword_only: this.stats.keywordOnlyResults,
         hybrid: this.stats.hybridResults
       },
+      cross_encoder: {
+        enabled: this.crossEncoderInitialized,
+        rerankings: this.stats.crossEncoderRerankings
+      },
       configuration: {
         semantic_weight: this.semanticWeight,
         keyword_weight: this.keywordWeight,
         min_semantic_score: this.minSemanticScore,
-        min_keyword_score: this.minKeywordScore
+        min_keyword_score: this.minKeywordScore,
+        use_cross_encoder: this.useCrossEncoder
       }
     };
+
+    // Add cross-encoder stats if available
+    if (this.crossEncoderInitialized && this.crossEncoder) {
+      stats.cross_encoder.model_stats = this.crossEncoder.getStats();
+    }
+
+    return stats;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async cleanup() {
+    console.log('🧹 Cleaning up Hybrid Search Service...');
+
+    if (this.crossEncoder) {
+      await this.crossEncoder.cleanup();
+    }
+
+    console.log('   ✅ Cleanup complete');
   }
 }
 

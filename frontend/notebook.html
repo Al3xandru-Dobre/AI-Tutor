@@ -369,15 +369,131 @@
     </div>
 
     <script>
-        // Initialize notebook functionality
-        let currentSection = 'vocabulary';
+        // Global variables
         let vocabularyData = [];
+        let notebookEntries = [];
+        let exerciseData = [];
         let exercisesData = [];
         let guidesData = [];
         let remindersData = [];
+        let currentSection = 'vocabulary';
 
-        // Load saved data
-        function loadData() {
+        // Initialize notebook with backend
+        async function initializeNotebookWithBackend() {
+            try {
+                isNotebookLoading = true;
+                showLoadingState();
+                
+                // Wait a bit for services to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Load data from backend
+                await loadBackendData();
+                
+                // Update all sections
+                updateAllSections();
+                
+                // Load statistics
+                await loadStatistics();
+                
+            } catch (error) {
+                console.error('Failed to initialize notebook:', error);
+                NotebookAPI.handleApiError(error, 'initializing notebook');
+                
+                // Fallback to localStorage if backend fails
+                loadLocalStorageData();
+            } finally {
+                isNotebookLoading = false;
+                hideLoadingState();
+            }
+        }
+
+        // Load data from backend API
+        async function loadBackendData() {
+            try {
+                // Load vocabulary
+                const vocabResult = await NotebookAPI.getVocabulary();
+                vocabularyData = Array.isArray(vocabResult?.vocabulary) ? vocabResult.vocabulary : [];
+
+                // Load exercises and guides
+                const [exercisesResult, guidesResult] = await Promise.all([
+                    NotebookAPI.getNotebookEntries({ type: 'exercise' }),
+                    NotebookAPI.getNotebookEntries({ type: 'guide' })
+                ]);
+
+                exercisesData = Array.isArray(exercisesResult?.entries) ? exercisesResult.entries : [];
+                guidesData = Array.isArray(guidesResult?.entries) ? guidesResult.entries : [];
+
+                // Load reminders from localStorage (still client-side)
+                try {
+                    const savedReminders = localStorage.getItem('notebookReminders');
+                    if (savedReminders) {
+                        const parsed = JSON.parse(savedReminders);
+                        remindersData = Array.isArray(parsed) ? parsed : [];
+                    }
+                } catch (reminderError) {
+                    console.warn('Error loading reminders from localStorage:', reminderError);
+                    remindersData = [];
+                }
+
+                console.log('Backend data loaded successfully');
+                console.log(`  Vocabulary: ${vocabularyData.length} items`);
+                console.log(`  Exercises: ${exercisesData.length} items`);
+                console.log(`  Guides: ${guidesData.length} items`);
+            } catch (error) {
+                console.error('Error loading backend data:', error);
+                // Ensure all arrays are initialized even on error
+                if (!Array.isArray(vocabularyData)) vocabularyData = [];
+                if (!Array.isArray(exercisesData)) exercisesData = [];
+                if (!Array.isArray(guidesData)) guidesData = [];
+                if (!Array.isArray(remindersData)) remindersData = [];
+                throw error;
+            }
+        }
+
+        // Load statistics from backend
+        async function loadStatistics() {
+            try {
+                const stats = await NotebookAPI.getStatistics();
+                updateCounts(stats);
+            } catch (error) {
+                console.warn('Failed to load statistics:', error);
+                updateCounts();
+            }
+        }
+
+        // Load localStorage data as fallback
+        function loadLocalStorageData() {
+            vocabularyData = JSON.parse(localStorage.getItem('notebookVocabulary') || '[]');
+            notebookEntries = JSON.parse(localStorage.getItem('notebookEntries') || '[]');
+            exercisesData = JSON.parse(localStorage.getItem('notebookExercises') || '[]');
+            guidesData = JSON.parse(localStorage.getItem('notebookGuides') || '[]');
+            remindersData = JSON.parse(localStorage.getItem('notebookReminders') || '[]');
+        }
+
+        // Update counts in navigation
+        function updateCounts(stats = null) {
+            const vocabCount = document.getElementById('vocabCount');
+            const exerciseCount = document.getElementById('exerciseCount');
+            const practiceCount = document.getElementById('practiceCount');
+            
+            if (vocabCount) {
+                vocabCount.textContent = vocabularyData.length;
+            }
+            if (exerciseCount) {
+                exerciseCount.textContent = exercisesData.length;
+            }
+            if (practiceCount) {
+                // Count items needing practice
+                const practiceNeeded = vocabularyData.filter(word => 
+                    word.masteryLevel < 3 || word.reviewCount === 0
+                ).length;
+                practiceCount.textContent = practiceNeeded;
+            }
+        }
+
+        // Fallback to localStorage
+        function loadLocalStorageData() {
             const savedVocab = localStorage.getItem('notebookVocabulary');
             const savedExercises = localStorage.getItem('notebookExercises');
             const savedGuides = localStorage.getItem('notebookGuides');
@@ -389,6 +505,76 @@
             if (savedReminders) remindersData = JSON.parse(savedReminders);
 
             updateAllSections();
+            showNotification('Using offline mode - some features may be limited', 'warning');
+        }
+
+        // Load statistics from backend
+        async function loadStatistics() {
+            try {
+                const stats = await NotebookAPI.getLearningOverview();
+                updateStatisticsDisplay(stats);
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        // Update statistics display
+        function updateStatisticsDisplay(stats) {
+            // Update vocabulary count
+            const vocabCount = document.getElementById('vocabCount');
+            if (vocabCount) vocabCount.textContent = stats.vocabulary?.total || 0;
+            
+            // Update exercise count
+            const exerciseCount = document.getElementById('exerciseCount');
+            if (exerciseCount) exerciseCount.textContent = stats.notebooks?.byType?.exercise || 0;
+            
+            // Update practice count
+            const practiceCount = document.getElementById('practiceCount');
+            if (practiceCount) practiceCount.textContent = stats.vocabulary?.dueForReview || 0;
+            
+            // Update spaced repetition stats
+            updateSpacedRepetitionStats(stats);
+        }
+
+        // Update spaced repetition statistics
+        function updateSpacedRepetitionStats(stats) {
+            const statCards = document.querySelectorAll('.stat-number');
+            if (statCards.length >= 4) {
+                statCards[0].textContent = stats.vocabulary?.dueForReview || 0; // Words to Review
+                statCards[1].textContent = '89%'; // Accuracy Rate (placeholder)
+                statCards[2].textContent = '7'; // Day Streak (placeholder)
+                statCards[3].textContent = stats.combined?.totalItems || 0; // Total Learned
+            }
+        }
+
+        // Show loading state
+        function showLoadingState() {
+            isNotebookLoading = true;
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'notebookLoading';
+            loadingIndicator.className = 'loading-overlay';
+            loadingIndicator.innerHTML = `
+                <div class="loading-spinner"></div>
+                <p>Loading notebook data...</p>
+            `;
+            document.body.appendChild(loadingIndicator);
+        }
+
+        // Hide loading state
+        function hideLoadingState() {
+            isNotebookLoading = false;
+            const loadingIndicator = document.getElementById('notebookLoading');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        }
+
+        // Hide loading state
+        function hideLoadingState() {
+            const loadingIndicator = document.getElementById('notebookLoading');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
         }
 
         // Switch between sections
@@ -418,115 +604,190 @@
         }
 
         // Vocabulary form submission
-        document.getElementById('vocabularyForm').addEventListener('submit', function(e) {
+        document.getElementById('vocabularyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const vocabulary = {
-                id: Date.now(),
-                japanese: document.getElementById('japaneseWord').value,
-                romaji: document.getElementById('romajiWord').value,
-                english: document.getElementById('englishMeaning').value,
-                level: document.getElementById('jlptLevel').value,
-                type: document.getElementById('wordType').value,
-                example: document.getElementById('exampleSentence').value,
-                notes: document.getElementById('vocabularyNotes').value,
-                addedDate: new Date().toISOString(),
-                reviewCount: 0,
-                masteryLevel: 0
-            };
+            try {
+                const vocabulary = {
+                    japanese: document.getElementById('japaneseWord').value,
+                    romaji: document.getElementById('romajiWord').value,
+                    english: document.getElementById('englishMeaning').value,
+                    level: document.getElementById('jlptLevel').value,
+                    type: document.getElementById('wordType').value,
+                    example: document.getElementById('exampleSentence').value,
+                    notes: document.getElementById('vocabularyNotes').value,
+                    tags: [] // Can be extended later
+                };
 
-            vocabularyData.push(vocabulary);
-            localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                // Try to add via backend API
+                const newVocab = await NotebookAPI.addVocabulary(vocabulary);
+                
+                // Add to local data
+                vocabularyData.push(newVocab.vocabulary);
+                
+                // Update display
+                updateVocabularyDisplay();
+                closeModal('vocabularyModal');
+                this.reset();
 
-            updateVocabularyDisplay();
-            closeModal('vocabularyModal');
-            this.reset();
+                showNotification('Vocabulary added successfully!', 'success');
+                
+            } catch (error) {
+                // Fallback to localStorage if backend fails
+                console.error('Backend add failed, using localStorage:', error);
+                
+                const fallbackVocab = {
+                    id: Date.now().toString(),
+                    ...vocabData,
+                    addedDate: new Date().toISOString(),
+                    reviewCount: 0,
+                    masteryLevel: 0
+                };
 
-            showNotification('Vocabulary added successfully!', 'success');
+                vocabularyData.push(fallbackVocab);
+                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+
+                updateVocabularyDisplay();
+                closeModal('vocabularyModal');
+                this.reset();
+
+                showNotification('Vocabulary added locally (offline mode)', 'warning');
+            }
         });
 
         // Update vocabulary display
         function updateVocabularyDisplay() {
             const grid = document.getElementById('vocabularyGrid');
+            if (!grid) return;
+
             grid.innerHTML = '';
+
+            // Ensure vocabularyData is an array
+            if (!Array.isArray(vocabularyData)) {
+                console.warn('updateVocabularyDisplay: vocabularyData is not an array', vocabularyData);
+                vocabularyData = [];
+            }
+
+            if (vocabularyData.length === 0) {
+                grid.innerHTML = '<p class="empty-message">No vocabulary yet. Add your first word!</p>';
+                const countElement = document.getElementById('vocabCount');
+                if (countElement) countElement.textContent = '0';
+                return;
+            }
 
             vocabularyData.forEach(word => {
                 const card = document.createElement('div');
                 card.className = 'vocabulary-card';
                 card.innerHTML = `
                     <div class="vocab-header">
-                        <span class="japanese-text">${word.japanese}</span>
-                        <span class="romaji-text">${word.romaji}</span>
+                        <span class="japanese-text">${word.japanese || ''}</span>
+                        <span class="romaji-text">${word.romaji || ''}</span>
                     </div>
                     <div class="vocab-body">
-                        <div class="english-meaning">${word.english}</div>
+                        <div class="english-meaning">${word.english || ''}</div>
                         <div class="vocab-meta">
-                            <span class="level-badge ${word.level.toLowerCase()}">${word.level}</span>
-                            <span class="type-badge">${word.type}</span>
+                            <span class="level-badge ${(word.level || 'N5').toLowerCase()}">${word.level || 'N5'}</span>
+                            <span class="type-badge">${word.type || 'noun'}</span>
                         </div>
                         ${word.example ? `<div class="example-text">${word.example}</div>` : ''}
                         ${word.notes ? `<div class="vocab-notes">${word.notes}</div>` : ''}
                     </div>
                     <div class="vocab-actions">
-                        <button onclick="editVocabulary(${word.id})" class="action-btn edit">✏️</button>
-                        <button onclick="practiceWord(${word.id})" class="action-btn practice">🔄</button>
-                        <button onclick="deleteVocabulary(${word.id})" class="action-btn delete">🗑️</button>
+                        <button onclick="editVocabulary('${word.id}')" class="action-btn edit">✏️</button>
+                        <button onclick="practiceWord('${word.id}')" class="action-btn practice">🔄</button>
+                        <button onclick="deleteVocabulary('${word.id}')" class="action-btn delete">🗑️</button>
                     </div>
                 `;
                 grid.appendChild(card);
             });
 
-            document.getElementById('vocabCount').textContent = vocabularyData.length;
+            const countElement = document.getElementById('vocabCount');
+            if (countElement) {
+                countElement.textContent = vocabularyData.length;
+            }
         }
 
         // Search and filter functionality
-        function searchVocabulary() {
-            const searchTerm = document.getElementById('vocabSearch').value.toLowerCase();
-            const level = document.getElementById('levelFilter').value;
-            const type = document.getElementById('typeFilter').value;
+        async function searchVocabulary() {
+            try {
+                const searchTerm = document.getElementById('vocabSearch').value;
+                const level = document.getElementById('levelFilter').value;
+                const type = document.getElementById('typeFilter').value;
 
-            const filtered = vocabularyData.filter(word => {
-                const matchesSearch = word.japanese.includes(searchTerm) ||
-                                     word.romaji.toLowerCase().includes(searchTerm) ||
-                                     word.english.toLowerCase().includes(searchTerm);
-                const matchesLevel = level === 'all' || word.level === level;
-                const matchesType = type === 'all' || word.type === type;
+                const filters = {
+                    search: searchTerm,
+                    level: level,
+                    type: type
+                };
 
-                return matchesSearch && matchesLevel && matchesType;
-            });
+                // Try backend search first
+                const results = await NotebookAPI.getVocabulary(filters);
+                displayFilteredVocabulary(results);
+                
+            } catch (error) {
+                console.error('Backend search failed, using local search:', error);
+                
+                // Fallback to local search
+                const searchTerm = document.getElementById('vocabSearch').value.toLowerCase();
+                const level = document.getElementById('levelFilter').value;
+                const type = document.getElementById('typeFilter').value;
 
-            displayFilteredVocabulary(filtered);
+                const filtered = vocabularyData.filter(word => {
+                    const matchesSearch = word.japanese.includes(searchTerm) ||
+                                         word.romaji.toLowerCase().includes(searchTerm) ||
+                                         word.english.toLowerCase().includes(searchTerm);
+                    const matchesLevel = level === 'all' || word.level === level;
+                    const matchesType = type === 'all' || word.type === type;
+
+                    return matchesSearch && matchesLevel && matchesType;
+                });
+
+                displayFilteredVocabulary(filtered);
+            }
         }
 
-        function filterVocabulary() {
-            searchVocabulary();
+        async function filterVocabulary() {
+            await searchVocabulary();
         }
 
         function displayFilteredVocabulary(words) {
             const grid = document.getElementById('vocabularyGrid');
+            if (!grid) return;
+
             grid.innerHTML = '';
+
+            // Ensure words is an array
+            if (!Array.isArray(words)) {
+                console.warn('displayFilteredVocabulary: words is not an array', words);
+                words = [];
+            }
+
+            if (words.length === 0) {
+                grid.innerHTML = '<p class="empty-message">No matching vocabulary found.</p>';
+                return;
+            }
 
             words.forEach(word => {
                 const card = document.createElement('div');
                 card.className = 'vocabulary-card';
                 card.innerHTML = `
                     <div class="vocab-header">
-                        <span class="japanese-text">${word.japanese}</span>
-                        <span class="romaji-text">${word.romaji}</span>
+                        <span class="japanese-text">${word.japanese || ''}</span>
+                        <span class="romaji-text">${word.romaji || ''}</span>
                     </div>
                     <div class="vocab-body">
-                        <div class="english-meaning">${word.english}</div>
+                        <div class="english-meaning">${word.english || ''}</div>
                         <div class="vocab-meta">
-                            <span class="level-badge ${word.level.toLowerCase()}">${word.level}</span>
-                            <span class="type-badge">${word.type}</span>
+                            <span class="level-badge ${(word.level || 'N5').toLowerCase()}">${word.level || 'N5'}</span>
+                            <span class="type-badge">${word.type || 'noun'}</span>
                         </div>
                         ${word.example ? `<div class="example-text">${word.example}</div>` : ''}
                         ${word.notes ? `<div class="vocab-notes">${word.notes}</div>` : ''}
                     </div>
                     <div class="vocab-actions">
-                        <button onclick="editVocabulary(${word.id})" class="action-btn edit">✏️</button>
-                        <button onclick="practiceWord(${word.id})" class="action-btn practice">🔄</button>
-                        <button onclick="deleteVocabulary(${word.id})" class="action-btn delete">🗑️</button>
+                        <button onclick="editVocabulary('${word.id}')" class="action-btn edit">✏️</button>
+                        <button onclick="practiceWord('${word.id}')" class="action-btn practice">🔄</button>
+                        <button onclick="deleteVocabulary('${word.id}')" class="action-btn delete">🗑️</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -534,32 +795,204 @@
         }
 
         // Exercise functions
-        function startExercise(type) {
-            showNotification(`Starting ${type} exercise...`, 'info');
-            // Will implement exercise logic
+        async function startExercise(type) {
+            try {
+                showNotification(`Starting ${type} exercise...`, 'info');
+                
+                // Create a simple exercise entry
+                const exerciseData = {
+                    title: `${type.charAt(0).toUpperCase() + type.slice(1)} Practice`,
+                    content: `Practice session for ${type} - ${new Date().toLocaleDateString()}`,
+                    type: 'exercise',
+                    category: type,
+                    difficulty: 'beginner',
+                    tags: [type]
+                };
+                
+                const newExercise = await NotebookAPI.createExercise(exerciseData);
+                exercisesData.push(newExercise);
+                
+                showNotification(`${type} exercise created!`, 'success');
+                
+            } catch (error) {
+                console.error('Failed to start exercise:', error);
+                showNotification('Failed to start exercise', 'error');
+            }
         }
 
-        function showExerciseModal() {
-            showNotification('Exercise creation coming soon!', 'info');
+        async function showExerciseModal() {
+            try {
+                // Simple exercise creation modal (can be enhanced)
+                const title = prompt('Exercise title:');
+                if (!title) return;
+                
+                const content = prompt('Exercise content/description:');
+                if (!content) return;
+                
+                const exerciseData = {
+                    title: title,
+                    content: content,
+                    type: 'exercise',
+                    category: 'custom',
+                    difficulty: 'beginner'
+                };
+                
+                const newExercise = await NotebookAPI.createExercise(exerciseData);
+                exercisesData.push(newExercise);
+                
+                showNotification('Exercise created successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Failed to create exercise:', error);
+                showNotification('Failed to create exercise', 'error');
+            }
         }
 
         // Spaced repetition functions
-        function startSpacedRepetition() {
-            showNotification('Starting spaced repetition practice...', 'info');
-            // Will implement spaced repetition logic
+        async function startSpacedRepetition() {
+            try {
+                showNotification('Loading spaced repetition practice...', 'info');
+                
+                // Get vocabulary due for review
+                const dueForReview = await NotebookAPI.getVocabularyForReview();
+                
+                if (dueForReview.length === 0) {
+                    showNotification('No vocabulary due for review! Great job!', 'success');
+                    return;
+                }
+                
+                // Start practice with first item
+                const currentVocab = dueForReview[0];
+                practiceSpacedRepetitionItem(currentVocab, dueForReview);
+                
+            } catch (error) {
+                console.error('Failed to start spaced repetition:', error);
+                showNotification('Failed to start spaced repetition', 'error');
+            }
+        }
+
+        async function practiceSpacedRepetitionItem(vocab, queue) {
+            const score = prompt(`Spaced Repetition Practice\n\n${vocab.japanese} (${vocab.romaji})\n\nMeaning: ${vocab.english}\n\nRate your recall (1-5):`);
+            
+            if (score && !isNaN(score)) {
+                const scoreNum = parseInt(score);
+                if (scoreNum >= 1 && scoreNum <= 5) {
+                    try {
+                        await NotebookAPI.updateVocabularyMastery(vocab.id, scoreNum);
+                        
+                        // Remove from queue and continue
+                        const remainingQueue = queue.filter(item => item.id !== vocab.id);
+                        
+                        if (remainingQueue.length > 0) {
+                            setTimeout(() => {
+                                practiceSpacedRepetitionItem(remainingQueue[0], remainingQueue);
+                            }, 500);
+                        } else {
+                            showNotification('Spaced repetition session completed!', 'success');
+                            // Refresh display
+                            await loadStatistics();
+                        }
+                        
+                    } catch (error) {
+                        console.error('Failed to update mastery:', error);
+                        showNotification('Failed to record practice', 'error');
+                    }
+                } else {
+                    showNotification('Please enter a score between 1 and 5', 'error');
+                }
+            }
         }
 
         // Guide functions
-        function showGuideModal() {
-            showNotification('Guide creation coming soon!', 'info');
+        async function showGuideModal() {
+            try {
+                // Simple guide creation modal (can be enhanced)
+                const title = prompt('Guide title:');
+                if (!title) return;
+                
+                const content = prompt('Guide content:');
+                if (!content) return;
+                
+                const category = prompt('Guide category (grammar, kanji, culture, phrases):') || 'grammar';
+                
+                const guideData = {
+                    title: title,
+                    content: content,
+                    type: 'guide',
+                    category: category,
+                    difficulty: 'beginner',
+                    tags: [category]
+                };
+                
+                const newGuide = await NotebookAPI.createGuide(guideData);
+                guidesData.push(newGuide);
+                
+                showNotification('Guide created successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Failed to create guide:', error);
+                showNotification('Failed to create guide', 'error');
+            }
         }
 
-        function filterGuides(category) {
-            document.querySelectorAll('.guide-category').forEach(cat => {
-                cat.classList.remove('active');
+        async function filterGuides(category) {
+            try {
+                document.querySelectorAll('.guide-category').forEach(cat => {
+                    cat.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Filter guides by category
+                const filters = category === 'all' ? {} : { category };
+                const filteredGuides = await NotebookAPI.getNotebookEntries({
+                    ...filters,
+                    type: 'guide'
+                });
+                
+                // Update guides display
+                updateGuidesDisplay(filteredGuides);
+                
+            } catch (error) {
+                console.error('Failed to filter guides:', error);
+                showNotification('Failed to filter guides', 'error');
+            }
+        }
+
+        function updateGuidesDisplay(guides) {
+            const guidesGrid = document.getElementById('guidesGrid');
+            if (!guidesGrid) return;
+
+            guidesGrid.innerHTML = '';
+
+            // Ensure guides is an array
+            if (!Array.isArray(guides)) {
+                console.warn('updateGuidesDisplay: guides is not an array', guides);
+                guides = [];
+            }
+
+            if (guides.length === 0) {
+                guidesGrid.innerHTML = '<p class="empty-message">No guides yet. Create your first guide!</p>';
+                return;
+            }
+
+            guides.forEach(guide => {
+                const guideCard = document.createElement('div');
+                guideCard.className = 'guide-card';
+                guideCard.innerHTML = `
+                    <div class="guide-header">
+                        <h3>${guide.title || 'Untitled Guide'}</h3>
+                        <span class="guide-category-badge">${guide.category || 'general'}</span>
+                    </div>
+                    <div class="guide-content">
+                        <p>${(guide.content || '').substring(0, 150)}${(guide.content || '').length > 150 ? '...' : ''}</p>
+                    </div>
+                    <div class="guide-meta">
+                        <span class="difficulty-badge">${guide.difficulty || 'beginner'}</span>
+                        <span class="date">${guide.createdAt ? new Date(guide.createdAt).toLocaleDateString() : 'Unknown'}</span>
+                    </div>
+                `;
+                guidesGrid.appendChild(guideCard);
             });
-            event.target.classList.add('active');
-            // Will implement guide filtering
         }
 
         // Reminder functions
@@ -630,85 +1063,200 @@
             document.body.classList.add('light-theme');
         }
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
+        // Update all sections
+        function updateAllSections() {
+            try {
+                // Ensure all data arrays are initialized
+                if (!Array.isArray(vocabularyData)) vocabularyData = [];
+                if (!Array.isArray(guidesData)) guidesData = [];
+                if (!Array.isArray(exercisesData)) exercisesData = [];
+                if (!Array.isArray(remindersData)) remindersData = [];
 
-            // Add some sample data for demonstration
-            if (vocabularyData.length === 0) {
-                vocabularyData = [
-                    {
-                        id: 1,
-                        japanese: 'こんにちは',
-                        romaji: 'konnichiwa',
-                        english: 'Hello',
-                        level: 'N5',
-                        type: 'greeting',
-                        example: 'こんにちは、元気ですか？',
-                        notes: 'Common greeting used during the day',
-                        addedDate: new Date().toISOString(),
-                        reviewCount: 3,
-                        masteryLevel: 2
-                    },
-                    {
-                        id: 2,
-                        japanese: '勉強',
-                        romaji: 'benkyou',
-                        english: 'Study',
-                        level: 'N5',
-                        type: 'verb',
-                        example: '毎日日本語を勉強します。',
-                        notes: 'Can be used as a noun or verb',
-                        addedDate: new Date().toISOString(),
-                        reviewCount: 5,
-                        masteryLevel: 3
-                    },
-                    {
-                        id: 3,
-                        japanese: '美しい',
-                        romaji: 'utsukushii',
-                        english: 'Beautiful',
-                        level: 'N4',
-                        type: 'adjective',
-                        example: 'この花は美しいです。',
-                        notes: 'i-adjective',
-                        addedDate: new Date().toISOString(),
-                        reviewCount: 2,
-                        masteryLevel: 1
-                    }
-                ];
-                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                updateVocabularyDisplay();
+                updateGuidesDisplay(guidesData);
+                // Update other sections as needed
+            } catch (error) {
+                console.error('Error updating all sections:', error);
+                showNotification('Failed to update some sections', 'error');
             }
-
-            updateAllSections();
-        });
+        }
 
         // Vocabulary action functions
-        function editVocabulary(id) {
-            showNotification('Edit functionality coming soon!', 'info');
+        async function editVocabulary(id) {
+            try {
+                const vocab = vocabularyData.find(word => word.id === id);
+                if (!vocab) {
+                    showNotification('Vocabulary not found', 'error');
+                    return;
+                }
+
+                // Populate form with existing data
+                document.getElementById('japaneseWord').value = vocab.japanese || '';
+                document.getElementById('romajiWord').value = vocab.romaji || '';
+                document.getElementById('englishMeaning').value = vocab.english || '';
+                document.getElementById('jlptLevel').value = vocab.level || 'N5';
+                document.getElementById('wordType').value = vocab.type || 'noun';
+                document.getElementById('exampleSentence').value = vocab.example || '';
+                document.getElementById('vocabularyNotes').value = vocab.notes || '';
+
+                // Show modal
+                document.getElementById('vocabularyModal').classList.add('active');
+
+                // Update form submission to handle edit
+                const form = document.getElementById('vocabularyForm');
+                const originalSubmit = form.onsubmit;
+                
+                form.onsubmit = async function(e) {
+                    e.preventDefault();
+
+                    const updates = {
+                        japanese: document.getElementById('japaneseWord').value,
+                        romaji: document.getElementById('romajiWord').value,
+                        english: document.getElementById('englishMeaning').value,
+                        level: document.getElementById('jlptLevel').value,
+                        type: document.getElementById('wordType').value,
+                        example: document.getElementById('exampleSentence').value,
+                        notes: document.getElementById('vocabularyNotes').value
+                    };
+
+                    try {
+                        // Try backend update
+                        const updated = await NotebookAPI.updateVocabulary(id, updates);
+                        
+                        // Update local data
+                        const localIndex = vocabularyData.findIndex(word => word.id === id);
+                        if (localIndex !== -1) {
+                            vocabularyData[localIndex] = updated;
+                        }
+                        
+                        updateVocabularyDisplay();
+                        closeModal('vocabularyModal');
+                        form.reset();
+                        form.onsubmit = originalSubmit; // Restore original handler
+                        
+                        showNotification('Vocabulary updated successfully!', 'success');
+                        
+                    } catch (error) {
+                        console.error('Backend update failed, using local update:', error);
+                        
+                        // Fallback to local update
+                        const localIndex = vocabularyData.findIndex(word => word.id === id);
+                        if (localIndex !== -1) {
+                            vocabularyData[localIndex] = {
+                                ...vocabularyData[localIndex],
+                                ...updates,
+                                updatedAt: new Date().toISOString()
+                            };
+                            localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                        }
+                        
+                        updateVocabularyDisplay();
+                        closeModal('vocabularyModal');
+                        form.reset();
+                        form.onsubmit = originalSubmit;
+                        
+                        showNotification('Vocabulary updated locally (offline mode)', 'warning');
+                    }
+                };
+                
+            } catch (error) {
+                console.error('Error editing vocabulary:', error);
+                showNotification('Failed to edit vocabulary', 'error');
+            }
         }
 
-        function practiceWord(id) {
-            showNotification('Practice functionality coming soon!', 'info');
+        async function practiceWord(id) {
+            try {
+                // Get vocabulary details
+                const vocab = vocabularyData.find(word => word.id === id);
+                if (!vocab) {
+                    showNotification('Vocabulary not found', 'error');
+                    return;
+                }
+
+                // Simple practice interface (can be enhanced)
+                const score = prompt(`Practice: ${vocab.japanese} (${vocab.romaji})\n\nMeaning: ${vocab.english}\n\nRate your knowledge (1-5):`);
+                
+                if (score && !isNaN(score)) {
+                    const scoreNum = parseInt(score);
+                    if (scoreNum >= 1 && scoreNum <= 5) {
+                        try {
+                            // Try backend update
+                            await NotebookAPI.updateVocabularyMastery(id, scoreNum);
+                            
+                            // Update local data
+                            const localVocab = vocabularyData.find(word => word.id === id);
+                            if (localVocab) {
+                                localVocab.reviewCount = (localVocab.reviewCount || 0) + 1;
+                                localVocab.masteryLevel = (localVocab.masteryLevel || 0) + scoreNum;
+                                localVocab.lastReviewed = new Date().toISOString();
+                            }
+                            
+                            updateVocabularyDisplay();
+                            showNotification('Practice recorded successfully!', 'success');
+                            
+                        } catch (error) {
+                            console.error('Backend practice update failed, using local update:', error);
+                            
+                            // Fallback to local update
+                            const localVocab = vocabularyData.find(word => word.id === id);
+                            if (localVocab) {
+                                localVocab.reviewCount = (localVocab.reviewCount || 0) + 1;
+                                localVocab.masteryLevel = (localVocab.masteryLevel || 0) + scoreNum;
+                                localVocab.lastReviewed = new Date().toISOString();
+                                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                            }
+                            
+                            updateVocabularyDisplay();
+                            showNotification('Practice recorded locally (offline mode)', 'warning');
+                        }
+                    } else {
+                        showNotification('Please enter a score between 1 and 5', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error in practice:', error);
+                showNotification('Practice failed', 'error');
+            }
         }
 
-        function deleteVocabulary(id) {
+        async function deleteVocabulary(id) {
             if (confirm('Are you sure you want to delete this vocabulary?')) {
-                vocabularyData = vocabularyData.filter(word => word.id !== id);
-                localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
-                updateVocabularyDisplay();
-                showNotification('Vocabulary deleted successfully!', 'success');
+                try {
+                    // Try backend deletion first
+                    await NotebookAPI.deleteVocabulary(id);
+                    
+                    // Remove from local data
+                    vocabularyData = vocabularyData.filter(word => word.id !== id);
+                    updateVocabularyDisplay();
+                    
+                    showNotification('Vocabulary deleted successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Backend delete failed, using local deletion:', error);
+                    
+                    // Fallback to local deletion
+                    vocabularyData = vocabularyData.filter(word => word.id !== id);
+                    localStorage.setItem('notebookVocabulary', JSON.stringify(vocabularyData));
+                    updateVocabularyDisplay();
+                    
+                    showNotification('Vocabulary deleted locally (offline mode)', 'warning');
+                }
             }
         }
     </script>
     <script src="js/app-state.js"></script>
     <script src="js/ui-utils.js"></script>
+    <script src="js/notebook-api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize DOM references for sidebar functionality
             initializeDOMReferences();
             initializeSidebarState();
             initializeTheme();
+            
+            // Initialize notebook with backend integration
+            initializeNotebookWithBackend();
         });
     </script>
 </body>

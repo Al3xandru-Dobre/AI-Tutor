@@ -1,0 +1,18 @@
+{
+  "8b49d7330686e5d0": {
+    "id": "8b49d7330686e5d0",
+    "title": "Test Entry",
+    "content": "This is a test notebook entry",
+    "type": "note",
+    "category": "general",
+    "tags": [],
+    "vocabularyIds": [],
+    "createdAt": "2025-11-01T22:44:28.358Z",
+    "updatedAt": "2025-11-01T22:44:28.358Z",
+    "difficulty": "beginner",
+    "masteryLevel": 0,
+    "practiceCount": 0,
+    "lastPracticed": null,
+    "metadata": {}
+  }
+}

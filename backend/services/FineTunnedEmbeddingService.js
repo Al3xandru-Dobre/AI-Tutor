@@ -1,33 +1,41 @@
 // services/FineTunedEmbeddingService.js - Custom embeddings for Japanese learning
 
-const axios = require('axios');
+const TransformerEmbeddingService = require('./TransformerEmbeddingService');
 const fs = require('fs').promises;
 const path = require('path');
 
 class FineTunedEmbeddingService {
   constructor(options = {}) {
     // Embedding model configuration
-    this.baseModel = options.baseModel || 'all-MiniLM-L6-v2';
+    this.baseModel = options.baseModel || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
     this.customModelPath = options.customModelPath || null;
     this.embeddingDimension = options.embeddingDimension || 384;
-    
+
     // Fine-tuning configuration
     this.trainingDataPath = path.join(__dirname, '../data/embedding-training');
     this.modelCachePath = path.join(__dirname, '../data/model-cache');
-    
+
     // Japanese-specific weights
     this.japaneseBoost = options.japaneseBoost || 1.3;
     this.grammarBoost = options.grammarBoost || 1.2;
     this.exampleBoost = options.exampleBoost || 1.1;
-    
+
     // Statistics
     this.stats = {
       totalEmbeddings: 0,
       cachedEmbeddings: 0,
       avgEmbeddingTime: 0,
-      customModelUsed: false
+      customModelUsed: false,
+      usingRealModel: true
     };
-    
+
+    // Initialize the transformer embedding service
+    this.transformerService = new TransformerEmbeddingService({
+      modelName: this.baseModel,
+      dimension: this.embeddingDimension,
+      useCache: true
+    });
+
     // Embedding cache
     this.embeddingCache = new Map();
   }
@@ -36,25 +44,30 @@ class FineTunedEmbeddingService {
    * Initialize the embedding service
    */
   async initialize() {
-    console.log('🔧 Initializing Fine-Tuned Embedding Service...');
-    
+    console.log('🔧 Initializing Fine-Tuned Embedding Service (with real transformers)...');
+
     try {
       // Create directories
       await fs.mkdir(this.trainingDataPath, { recursive: true });
       await fs.mkdir(this.modelCachePath, { recursive: true });
-      
+
+      // Initialize the transformer model
+      await this.transformerService.initialize();
+
       // Load custom model if available
       if (this.customModelPath) {
         await this.loadCustomModel();
       }
-      
+
       // Load embedding cache
       await this.loadEmbeddingCache();
-      
-      console.log('✅ Embedding service initialized');
+
+      console.log('✅ Fine-Tuned Embedding service initialized with real transformers');
       return true;
     } catch (error) {
       console.error('❌ Embedding service initialization failed:', error);
+      console.log('⚠️  Falling back to simulated embeddings');
+      this.stats.usingRealModel = false;
       return false;
     }
   }
@@ -73,9 +86,9 @@ class FineTunedEmbeddingService {
 
     const isArray = Array.isArray(text);
     const texts = isArray ? text : [text];
-    
-    console.log(`🔢 Generating embeddings for ${texts.length} text(s)...`);
-    
+
+    console.log(`🔢 Generating embeddings for ${texts.length} text(s) using transformers...`);
+
     const embeddings = [];
     const startTime = Date.now();
 
@@ -89,9 +102,20 @@ class FineTunedEmbeddingService {
 
       // Generate new embedding
       let embedding;
-      if (this.customModelPath && this.stats.customModelUsed) {
-        embedding = await this.generateCustomEmbedding(t);
-      } else {
+      try {
+        if (this.stats.usingRealModel) {
+          // Use real transformer model
+          embedding = await this.transformerService.generate(t, {
+            normalize: true,
+            pooling: 'mean',
+            useCache: false // We handle caching at this level
+          });
+        } else {
+          // Fallback to simulated embedding
+          embedding = await this.generateBaseEmbedding(t);
+        }
+      } catch (error) {
+        console.error('  ⚠️  Error generating embedding, using fallback:', error.message);
         embedding = await this.generateBaseEmbedding(t);
       }
 
@@ -111,12 +135,12 @@ class FineTunedEmbeddingService {
 
     // Update statistics
     const embeddingTime = Date.now() - startTime;
-    this.stats.avgEmbeddingTime = 
-      ((this.stats.avgEmbeddingTime * (this.stats.totalEmbeddings - texts.length)) + 
+    this.stats.avgEmbeddingTime =
+      ((this.stats.avgEmbeddingTime * (this.stats.totalEmbeddings - texts.length)) +
        embeddingTime) / this.stats.totalEmbeddings;
 
     console.log(`  ✅ Generated ${embeddings.length} embeddings in ${embeddingTime}ms`);
-    
+
     return isArray ? embeddings : embeddings[0];
   }
 
@@ -391,12 +415,13 @@ class FineTunedEmbeddingService {
    * Get service statistics
    */
   getStats() {
-    return {
+    const baseStats = {
       total_embeddings_generated: this.stats.totalEmbeddings,
       cached_embeddings_used: this.stats.cachedEmbeddings,
       avg_embedding_time_ms: Math.round(this.stats.avgEmbeddingTime),
       cache_size: this.embeddingCache.size,
       custom_model_used: this.stats.customModelUsed,
+      using_real_model: this.stats.usingRealModel,
       configuration: {
         base_model: this.baseModel,
         embedding_dimension: this.embeddingDimension,
@@ -405,6 +430,13 @@ class FineTunedEmbeddingService {
         example_boost: this.exampleBoost
       }
     };
+
+    // Add transformer service stats if available
+    if (this.stats.usingRealModel && this.transformerService) {
+      baseStats.transformer_stats = this.transformerService.getStats();
+    }
+
+    return baseStats;
   }
 
   /**
@@ -413,6 +445,12 @@ class FineTunedEmbeddingService {
   async cleanup() {
     console.log('🧹 Cleaning up embedding service...');
     await this.saveEmbeddingCache();
+
+    // Cleanup transformer service
+    if (this.transformerService) {
+      await this.transformerService.cleanup();
+    }
+
     console.log('  ✅ Cleanup complete');
   }
 }
