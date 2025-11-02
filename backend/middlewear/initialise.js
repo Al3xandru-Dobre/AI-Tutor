@@ -52,7 +52,7 @@ async function initializeAllServices() {
     const rag = new EnhancedRAGService({
       chromaPath: process.env.CHROMA_DB_URL || 'http://localhost:8000',
       collectionName: process.env.CHROMA_COLLECTION_NAME || 'japanese_tutor_knowledge',
-      embeddingModel: process.env.EMBEDDING_MODEL || 'all-MiniLM-L6-v2',
+      embeddingModel: process.env.EMBEDDING_MODEL || 'Xenova/multilingual-e5-base',
       useChromaDB: process.env.USE_CHROMADB !== 'false',
       maxChunkSize: parseInt(process.env.MAX_CHUNK_SIZE) || 800,
       chunkOverlap: parseInt(process.env.CHUNK_OVERLAP) || 100
