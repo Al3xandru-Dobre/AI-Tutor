@@ -120,10 +120,10 @@ const PROVIDER_CONFIGS = {
     cost: 'variable',
     description: 'Unified API for multiple LLM providers',
     defaultModels: [
-     'deepseek/deepseek-chat-v3-0324:free'
+      'deepseek/deepseek-v3.2-exp'
     ],
     models: {
-     'deepseek/deepseek-chat-v3-0324:free' : 'DeepSeek Chat V3.1 - General purpose chat model',
+      'deepseek/deepseek-v3.2-exp': 'DeepSeek V3.2 Expert - High performance'
     }
   }
 };

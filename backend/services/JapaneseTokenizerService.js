@@ -9,10 +9,9 @@ const path = require('path');
  */
 class JapaneseTokenizerService {
   constructor(options = {}) {
-    this.dicPath = options.dicPath || path.join(
-      __dirname,
-      '../node_modules/kuromoji/dict'
-    );
+    const kuromojiPackagePath = path.dirname(require.resolve('kuromoji/package.json'));
+    this.dicPath = options.dicPath || path.join(kuromojiPackagePath, 'dict');
+
 
     this.tokenizer = null;
     this.initialized = false;
