@@ -5,6 +5,16 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const pdf = require('pdf-parse');
+const { pipeline, env } = require('@xenova/transformers');
+
+// Configure Hugging Face authentication from environment
+if (process.env.HUGGING_FACE_HUB_TOKEN) {
+  env.accessToken = process.env.HUGGING_FACE_HUB_TOKEN;
+}
+
+// Use local model cache but allow remote downloads with token
+env.allowLocalModels = true;
+env.allowRemoteModels = true; // Allow remote downloads with HuggingFace token
 
 class EnhancedRAGService {
   constructor(options = {}) {
@@ -14,10 +24,11 @@ class EnhancedRAGService {
     this.collectionName = options.collectionName || 'japanese_tutor_knowledge';
     this.collection = null;
     this.embeddingFunction = null;
-    
+
     // Embedding configuration
-    this.embeddingModel = options.embeddingModel || 'all-MiniLM-L6-v2';
-    this.embeddingDimension = 384; // For all-MiniLM-L6-v2
+    this.embeddingModel = options.embeddingModel || process.env.EMBEDDING_MODEL || 'Xenova/paraphrase-multilingual-mpnet-base-v2';
+    // Set embedding dimension based on model
+    this.embeddingDimension = this.getEmbeddingDimension(this.embeddingModel);
     
     // Chunking settings
     this.maxChunkSize = options.maxChunkSize || 800;
@@ -47,12 +58,17 @@ class EnhancedRAGService {
    */
   async initialize() {
     try {
-      console.log('🔄 Initializing Enhanced RAG Service with ChromaDB...');
       
+      console.log('🔄 Initializing Enhanced RAG Service with ChromaDB...');
+
       if (this.useChromaDB) {
+        //only for development purposes, erases data from ChromaDB
+        await this.deleteAndRecreateCollection();
+        
+        await this.setupCustomEmbedding();
         await this.initializeChromaDB();
       }
-      
+
       // Load or create grammar data directory
       await fs.mkdir(this.grammarDataPath, { recursive: true });
       
@@ -108,6 +124,19 @@ class EnhancedRAGService {
     }
   }
 
+
+      async deleteAndRecreateCollection() {
+        try {
+            console.warn(`[DEV-MODE] Attempting to delete collection "${this.collectionName}" to ensure compatibility...`);
+            const client = new ChromaClient({ path: this.chromaUrl });
+            await client.deleteCollection({ name: this.collectionName });
+            console.warn(`✅ Collection "${this.collectionName}" deleted successfully.`);
+        } catch (error) {
+            // Ignoră eroarea dacă colecția nu există, ceea ce este normal la prima rulare
+            console.log(`ℹ️ Collection "${this.collectionName}" did not exist, skipping deletion.`);
+        }
+    }
+
   /**
    * Initialize ChromaDB client and collection
    */
@@ -129,38 +158,56 @@ class EnhancedRAGService {
             console.log('💓 ChromaDB heartbeat:', heartbeat);
             
             // Configurare collection avansată
+            let collectionExists = false;
             try {
                 this.collection = await this.chromaClient.getCollection({
-                    name: this.collectionName
+                    name: this.collectionName,
+                    embeddingFunction: this.embeddingFunction
                 });
                 console.log(`📚 Connected to existing collection: ${this.collectionName}`);
+                collectionExists = true;
+
+                // Verifică compatibilitatea dimensiunilor embedding
+                await this.checkEmbeddingDimensionCompatibility();
+
             } catch (error) {
-                console.log(`📚 Creating new collection with custom config: ${this.collectionName}`);
-                
-                this.collection = await this.chromaClient.createCollection({
-                    name: this.collectionName,
-                    metadata: {
-                        description: 'Japanese language learning content with semantic embeddings',
-                        created_at: new Date().toISOString(),
-                        embedding_model: this.embeddingModel,
-                        
-                        // Configurări custom
-                        'hnsw:space': 'cosine',  // Metric de similaritate
-                        'hnsw:construction_ef': 200,  // Calitate construcție index
-                        'hnsw:search_ef': 100,  // Calitate căutare
-                        'hnsw:M': 16,  // Număr conexiuni per nod
-                        
-                        // Metadata pentru filtering
-                        'schema_version': '2.0',
-                        'language': 'japanese',
-                        'domain': 'education'
-                    },
-                    
-                    // Embedding function (dacă folosești custom)
-                    embeddingFunction: this.customEmbeddingFunction || undefined
-                });
-                
-                console.log('✅ Collection created with HNSW index configuration');
+                if (collectionExists) {
+                    // Eroare la verificarea dimensiunilor - recreează collection-ul
+                    console.warn('⚠️  Embedding dimension mismatch detected. Recreating collection...');
+                    await this.chromaClient.deleteCollection({ name: this.collectionName });
+                    collectionExists = false;
+                }
+
+                if (!collectionExists) {
+                    console.log(`📚 Creating new collection with custom config: ${this.collectionName}`);
+
+                    this.collection = await this.chromaClient.createCollection({
+                        name: this.collectionName,
+                        metadata: {
+                            description: 'Japanese language learning content with semantic embeddings',
+                            created_at: new Date().toISOString(),
+                            embedding_model: this.embeddingModel,
+                            embedding_dimension: this.embeddingDimension,
+
+                            // Configurări custom
+                            'hnsw:space': 'cosine',  // Metric de similaritate
+                            'hnsw:construction_ef': 200,  // Calitate construcție index
+                            'hnsw:search_ef': 100,  // Calitate căutare
+                            'hnsw:M': 16,  // Număr conexiuni per nod
+
+                            // Metadata pentru filtering
+                            'schema_version': '2.0',
+                            'language': 'japanese',
+                            'domain': 'education'
+                        },
+
+                        // Embedding function
+                        embeddingFunction: this.embeddingFunction
+                    });
+
+                    console.log('✅ Collection created with HNSW index configuration');
+                    console.log(`   📊 Embedding dimension: ${this.embeddingDimension}`);
+                }
             }
             
             return true;
@@ -169,18 +216,80 @@ class EnhancedRAGService {
             throw error;
         }
     }
-  async setupCustomEmbedding() {
-    const CustomJapaneseEmbedding = require('./customEmbbedingsService');
+    async setupCustomEmbedding() {
+    try {
+      console.log('🔄 Attempting to initialize Custom Japanese Embedding Service...');
+      const CustomJapaneseEmbedding = require('./customEmbbedingsService');
 
-    this.customEmbeddingFunction = {
-      generate: async (texts) => {
-        const embedder = new CustomJapaneseEmbedding('./models/japanese_embedder');
-        await embedder.initialize();
-        return await embedder.embed(texts);
-      }
-    };
+      const embedder = new CustomJapaneseEmbedding();
+      await embedder.initialize();
+
+      // Update model configuration
+      this.embeddingModel = embedder.modelName;
+      this.embeddingDimension = this.getEmbeddingDimension(this.embeddingModel);
+
+      // Wrap the custom embedder to match ChromaDB's expected interface
+      this.embeddingFunction = {
+        generate: async (texts) => {
+          return await embedder.embed(texts);
+        }
+      };
+      console.log('✅ Custom Japanese Embedding Service initialized successfully.');
+      console.log(`   📊 Using model: ${this.embeddingModel}`);
+      console.log(`   📏 Embedding dimension: ${this.embeddingDimension}`);
+    } catch (error) {
+      console.warn('⚠️  Custom Japanese embedder failed to initialize. Falling back to default model.');
+      console.warn(`   > Error: ${error.message}`);
+
+      // Fallback: Inițializează un model default cu pipeline
+      // Resetează la modelul din constructor/environment
+      this.embeddingModel = process.env.EMBEDDING_MODEL || 'Xenova/paraphrase-multilingual-mpnet-base-v2';
+      this.embeddingDimension = this.getEmbeddingDimension(this.embeddingModel);
+
+      console.log(`🔄 Loading fallback embedding model: ${this.embeddingModel}...`);
+      const fallbackPipeline = await pipeline('feature-extraction', this.embeddingModel);
+
+      this.embeddingFunction = {
+        generate: async (texts) => {
+          const result = await fallbackPipeline(texts, {
+            pooling: 'mean',
+            normalize: true
+          });
+          return result.tolist();
+        }
+      };
+      console.log('✅ Fallback embedding function initialized successfully.');
+      console.log(`   📊 Using model: ${this.embeddingModel}`);
+      console.log(`   📏 Embedding dimension: ${this.embeddingDimension}`);
+    }
   }
 
+  /**
+   * Check if embedding dimensions are compatible with the collection
+   * Throws error if mismatch detected
+   */
+  async checkEmbeddingDimensionCompatibility() {
+    try {
+      // Generate a test embedding to check dimension
+      const testEmbeddings = await this.embeddingFunction.generate(['test']);
+      const actualDimension = testEmbeddings[0].length;
+
+      console.log(`🔍 Checking embedding compatibility...`);
+      console.log(`   Expected dimension: ${this.embeddingDimension}`);
+      console.log(`   Actual dimension: ${actualDimension}`);
+
+      if (actualDimension !== this.embeddingDimension) {
+        throw new Error(
+          `Embedding dimension mismatch: expected ${this.embeddingDimension}, got ${actualDimension}`
+        );
+      }
+
+      console.log('✅ Embedding dimensions are compatible');
+    } catch (error) {
+      console.error('❌ Embedding compatibility check failed:', error.message);
+      throw error;
+    }
+  }
 
   /**
    * Check migration status
@@ -782,13 +891,15 @@ Daily expressions:
               total_chunks: chunks.length,
               created_at: doc.created,
               japanese_density: this.calculateJapaneseDensity(chunks[i])
-            }]
+            }],
+            //embeddingFunction: this.embeddingFunction
           });
         }
         
         console.log(`✅ Added document "${title}" to ChromaDB (${chunks.length} chunks)`);
       } catch (error) {
         console.error('Error adding to ChromaDB:', error);
+        throw error;
       }
     }
 
@@ -837,6 +948,25 @@ Daily expressions:
       .slice(0, 2)
       .map(p => p.paragraph)
       .join('\n\n') || content.substring(0, 300);
+  }
+
+  /**
+   * Get embedding dimension based on model name
+   */
+  getEmbeddingDimension(modelName) {
+    // Known embedding dimensions for common models
+    const dimensions = {
+      'Xenova/paraphrase-multilingual-mpnet-base-v2': 768,
+      'Xenova/multilingual-e5-base': 768,
+      'Xenova/multilingual-e5-large': 1024,
+      'Xenova/multilingual-e5-small': 384,
+      'all-MiniLM-L6-v2': 384,
+      'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2': 384,
+      'cl-tohoku/bert-base-japanese-v3': 768,
+      'intfloat/multilingual-e5-base': 768
+    };
+
+    return dimensions[modelName] || 768; // Default to 768 for unknown models
   }
 
   /**

@@ -73,8 +73,13 @@ class ModelProviderService {
         throw new Error('No model providers available. Please configure at least one provider.');
       }
 
-      // Set current provider to first available if current is not available
-      if (!this.providers[this.currentProvider]) {
+      // Priority order: Ollama > configured default > first available
+      if (this.providers.ollama) {
+        // Ollama is available and should be the default
+        this.currentProvider = 'ollama';
+        console.log(`🏠 Using Ollama as default local provider`);
+      } else if (!this.providers[this.currentProvider]) {
+        // Configured default is not available, use first available
         this.currentProvider = availableProviders[0];
         console.log(`  ℹ️  Default provider not available, using ${this.currentProvider}`);
       }
@@ -87,11 +92,11 @@ class ModelProviderService {
 
     } catch (error) {
       console.error('❌ ModelProviderService initialization error:', error);
-      // Fallback to Ollama if available
+      // Fallback to Ollama if available (local provider is most reliable)
       if (this.providers.ollama) {
         this.currentProvider = 'ollama';
         this.isInitialized = true;
-        console.log('  ⚠️  Falling back to Ollama only');
+        console.log('  ⚠️  Cloud providers failed, using Ollama local provider');
         return this.getAvailableProviders();
       }
       throw error;

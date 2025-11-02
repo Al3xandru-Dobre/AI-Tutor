@@ -18,8 +18,8 @@ env.useBrowserCache = false;
  */
 class TransformerEmbeddingService {
   constructor(options = {}) {
-    this.modelName = options.modelName || 'Xenova/all-MiniLM-L6-v2';
-    this.dimension = options.dimension || 384; // all-MiniLM-L6-v2 dimension
+    this.modelName = options.modelName || 'Xenova/multilingual-e5-base';
+    this.dimension = options.dimension || 768; // multilingual-e5-base dimension
     this.maxLength = options.maxLength || 512;
     this.cachePath = path.join(__dirname, '../data/model-cache');
     this.useCache = options.useCache !== false;
@@ -32,13 +32,13 @@ class TransformerEmbeddingService {
         description: 'Fast, lightweight model for general use'
       },
       'multilingual': {
-        name: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
-        dimension: 384,
-        description: 'Optimized for 50+ languages including Japanese'
+        name: 'Xenova/multilingual-e5-base',
+        dimension: 768,
+        description: 'Optimized for 100+ languages including Japanese (default)'
       },
       'large': {
-        name: 'Xenova/all-mpnet-base-v2',
-        dimension: 768,
+        name: 'Xenova/multilingual-e5-large',
+        dimension: 1024,
         description: 'Higher quality embeddings, slower'
       }
     };

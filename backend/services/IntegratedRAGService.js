@@ -21,7 +21,7 @@ class IntegratedRAGService {
       maxExpansions: options.maxExpansions || 5
     });
     this.embeddingService = new FineTunedEmbeddingService({
-      baseModel: options.embeddingModel || 'all-MiniLM-L6-v2',
+      baseModel: options.embeddingModel || 'Xenova/multilingual-e5-base',
       japaneseBoost: 1.3,
       grammarBoost: 1.2
     });
