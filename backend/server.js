@@ -1,4 +1,11 @@
 // server.js - Complete Integration with ChromaDB Enhanced RAG
+
+// ========================================
+// CRITICAL: Configure transformers FIRST
+// Must be imported before ANY other modules
+// ========================================
+require('./config/transformers.config');
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

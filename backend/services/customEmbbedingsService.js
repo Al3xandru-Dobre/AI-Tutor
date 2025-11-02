@@ -1,16 +1,12 @@
 const tf = require('@tensorflow/tfjs-node');
-const { AutoTokenizer, env, pipeline } = require('@xenova/transformers');
+const { env, pipeline } = require('@xenova/transformers');
+const path = require('path');
 
-
-// Configure Hugging Face authentication from environment (optional pentru modele publice)
+// Note: Global transformer configuration is set in backend/config/transformers.config.js
+// Configure Hugging Face authentication if provided
 if (process.env.HUGGING_FACE_HUB_TOKEN) {
   env.accessToken = process.env.HUGGING_FACE_HUB_TOKEN;
 }
-
-// Use local model cache but allow remote downloads
-env.allowLocalModels = true;
-env.allowRemoteModels = true; 
-const path = require('path');
 class CustomJapaneseEmbedding {
     constructor() {
         // Numele modelului de pe Hugging Face. Acesta este singurul lucru de care avem nevoie.

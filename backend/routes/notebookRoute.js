@@ -3,7 +3,7 @@ const router = express.Router();
 const {
     // Health check
     healthCheck,
-    
+
     // Vocabulary controllers
     addVocabulary,
     getAllVocabulary,
@@ -12,7 +12,10 @@ const {
     deleteVocabulary,
     updateVocabularyMastery,
     getVocabularyForReview,
-    
+    getLeeches,
+    getVocabularyBySource,
+    getVocabularyByConversation,
+
     // Notebook controllers
     createNotebookEntry,
     getAllNotebookEntries,
@@ -23,18 +26,18 @@ const {
     unlinkVocabularyFromNotebook,
     getNotebookVocabulary,
     updateNotebookPractice,
-    
+
     // Exercise & Guide helpers
     createExercise,
     createGuide,
     getExercises,
     getGuides,
-    
+
     // Analytics controllers
     getVocabularyStats,
     getNotebookStats,
     getLearningOverview,
-    
+
     // Import/Export controllers
     exportVocabulary,
     exportNotebooks
@@ -62,6 +65,9 @@ router.delete('/vocabulary/:id', deleteVocabulary);
 // Vocabulary specific actions
 router.post('/vocabulary/:id/review', updateVocabularyMastery);
 router.get('/vocabulary/review/due', getVocabularyForReview);
+router.get('/vocabulary/leeches', getLeeches);
+router.get('/vocabulary/source/:source', getVocabularyBySource);
+router.get('/vocabulary/conversation/:conversationId', getVocabularyByConversation);
 
 // ========================================
 // NOTEBOOK ROUTES

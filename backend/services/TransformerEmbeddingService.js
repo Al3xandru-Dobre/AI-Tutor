@@ -1,16 +1,11 @@
 // services/TransformerEmbeddingService.js - Real transformer-based embeddings using @xenova/transformers
 
-const { pipeline, env } = require('@xenova/transformers');
+const { pipeline } = require('@xenova/transformers');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Configure to use local models (disable remote model loading in production if needed)
-env.allowLocalModels = true;
-env.allowRemoteModels = true;
-
-// CRITICAL: Force CPU-only execution to avoid ONNX device errors
-env.backends.onnx.wasm.numThreads = 1;
-env.useBrowserCache = false;
+// Note: Global transformer configuration is set in backend/config/transformers.config.js
+// which is loaded first in server.js to ensure CPU-only execution
 
 /**
  * Transformer-based embedding service using @xenova/transformers

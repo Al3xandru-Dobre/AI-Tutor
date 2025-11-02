@@ -7,14 +7,11 @@ const crypto = require('crypto');
 const pdf = require('pdf-parse');
 const { pipeline, env } = require('@xenova/transformers');
 
-// Configure Hugging Face authentication from environment
+// Note: Global transformer configuration is set in backend/config/transformers.config.js
+// Configure Hugging Face authentication if provided
 if (process.env.HUGGING_FACE_HUB_TOKEN) {
   env.accessToken = process.env.HUGGING_FACE_HUB_TOKEN;
 }
-
-// Use local model cache but allow remote downloads with token
-env.allowLocalModels = true;
-env.allowRemoteModels = true; // Allow remote downloads with HuggingFace token
 
 class EnhancedRAGService {
   constructor(options = {}) {

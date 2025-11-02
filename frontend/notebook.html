@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="light-theme.css">
     <link rel="stylesheet" href="notebook.css">
+    <link rel="stylesheet" href="review-dashboard.css">
 </head>
 <body>
     <div class="app-layout" id="appLayout">
@@ -184,44 +185,145 @@
                 </div>
             </div>
 
-            <!-- Repetition Section -->
+            <!-- Repetition Section / Review Dashboard -->
             <div class="notebook-section" id="repetition-section">
                 <div class="section-header">
-                    <h2>🔄 Spaced Repetition Practice</h2>
-                    <button class="practice-btn" onclick="startSpacedRepetition()">
-                        <span>🎯</span> Start Practice
-                    </button>
+                    <h2>📊 Review Dashboard & Statistics</h2>
+                    <div class="header-actions">
+                        <button class="practice-btn" onclick="startSpacedRepetition()">
+                            <span>🎯</span> Start Practice
+                        </button>
+                        <button class="refresh-btn" id="refreshDashboard" onclick="refreshDashboard()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Main Stats Overview -->
                 <div class="stats-overview">
-                    <div class="stat-card">
-                        <div class="stat-number">15</div>
-                        <div class="stat-label">Words to Review</div>
+                    <div class="stat-card stat-primary">
+                        <div class="stat-number" id="dueCount">0</div>
+                        <div class="stat-label">📝 Due for Review</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">89%</div>
-                        <div class="stat-label">Accuracy Rate</div>
+                    <div class="stat-card stat-success">
+                        <div class="stat-number" id="retentionRate">N/A</div>
+                        <div class="stat-label">📈 Retention Rate</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">7</div>
-                        <div class="stat-label">Day Streak</div>
+                    <div class="stat-card stat-info">
+                        <div class="stat-number" id="totalVocab">0</div>
+                        <div class="stat-label">📚 Total Vocabulary</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">234</div>
-                        <div class="stat-label">Total Learned</div>
+                    <div class="stat-card stat-warning">
+                        <div class="stat-number" id="matureCards">0</div>
+                        <div class="stat-label">✅ Mature Cards</div>
                     </div>
                 </div>
 
-                <div class="repetition-queue">
-                    <h3>Today's Review Queue</h3>
+                <!-- SM-2 Statistics Grid -->
+                <div class="sm2-stats-grid">
+                    <div class="stat-box">
+                        <h3>Card Status</h3>
+                        <div class="stat-item">
+                            <span>🆕 New:</span>
+                            <strong id="newCards">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>📚 Learning:</span>
+                            <strong id="learningCards">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>✅ Mature:</span>
+                            <strong id="matureCards2">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-box">
+                        <h3>SM-2 Metrics</h3>
+                        <div class="stat-item">
+                            <span>⚡ Avg Ease Factor:</span>
+                            <strong id="avgEaseFactor">2.50</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>📅 Avg Interval:</span>
+                            <strong id="avgInterval">0 days</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>❌ Total Lapses:</span>
+                            <strong id="totalLapses">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-box stat-danger">
+                        <h3>Leeches 🔴</h3>
+                        <div class="stat-item">
+                            <span>Difficult Cards:</span>
+                            <strong id="leechCount">0</strong>
+                        </div>
+                        <p class="stat-note">Cards with 8+ lapses need extra attention</p>
+                    </div>
+
+                    <div class="stat-box">
+                        <h3>AI Extraction</h3>
+                        <div class="stat-item">
+                            <span>✍️ Manual:</span>
+                            <strong id="manualCount">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>🤖 AI:</span>
+                            <strong id="aiCount">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>🔀 Hybrid:</span>
+                            <strong id="hybridCount">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Confidence:</span>
+                            <strong id="avgConfidence">100%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <canvas id="masteryChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Review Queue -->
+                <div class="review-section">
+                    <div class="section-title">
+                        <h3>📋 Today's Review Queue</h3>
+                        <span class="subtitle">Cards due for review today</span>
+                    </div>
                     <div class="queue-list" id="reviewQueue">
-                        <!-- Review queue items will be populated here -->
+                        <div class="loading-spinner">Loading...</div>
                     </div>
                 </div>
 
-                <div class="progress-chart">
-                    <h3>Learning Progress</h3>
-                    <canvas id="progressChart" width="400" height="200"></canvas>
+                <!-- Leech Cards -->
+                <div class="leech-section">
+                    <div class="section-title">
+                        <h3>🔴 Leech Cards - Need Extra Attention</h3>
+                        <span class="subtitle">Cards you're having difficulty with</span>
+                    </div>
+                    <div class="leech-list" id="leechCards">
+                        <div class="loading-spinner">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Detailed Statistics -->
+                <div class="detailed-stats">
+                    <h3>📊 Detailed Statistics</h3>
+                    <div id="detailedStats">
+                        <div class="loading-spinner">Loading...</div>
+                    </div>
                 </div>
             </div>
 
@@ -1248,16 +1350,52 @@
     <script src="js/app-state.js"></script>
     <script src="js/ui-utils.js"></script>
     <script src="js/notebook-api.js"></script>
+
+    <!-- Chart.js for statistics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Review Dashboard -->
+    <script src="js/review-dashboard.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize DOM references for sidebar functionality
             initializeDOMReferences();
             initializeSidebarState();
             initializeTheme();
-            
+
             // Initialize notebook with backend integration
             initializeNotebookWithBackend();
+
+            // Initialize review dashboard when repetition section is active
+            const repetitionSection = document.getElementById('repetition-section');
+            if (repetitionSection && repetitionSection.classList.contains('active')) {
+                initializeReviewDashboard();
+            }
         });
+
+        // Reinitialize dashboard when switching to repetition section
+        function switchSection(sectionName) {
+            // Existing section switching logic
+            const sections = document.querySelectorAll('.notebook-section');
+            sections.forEach(section => section.classList.remove('active'));
+
+            const targetSection = document.getElementById(`${sectionName}-section`);
+            if (targetSection) {
+                targetSection.classList.add('active');
+
+                // Update nav items
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                document.querySelector(`[data-section="${sectionName}"]`)?.classList.add('active');
+
+                // Initialize review dashboard if switching to repetition
+                if (sectionName === 'repetition') {
+                    initializeReviewDashboard();
+                }
+            }
+        }
     </script>
 </body>
 </html>

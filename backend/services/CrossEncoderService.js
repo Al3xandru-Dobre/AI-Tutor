@@ -1,12 +1,9 @@
 // services/CrossEncoderService.js - Real cross-encoder reranking using transformers
 
-const { pipeline, env } = require('@xenova/transformers');
-const fs = require('fs').promises;
-const path = require('path');
+const { pipeline } = require('@xenova/transformers');
 
-// Configure transformer environment
-env.allowLocalModels = true;
-env.allowRemoteModels = true;
+// Note: Global transformer configuration is set in backend/config/transformers.config.js
+// which is loaded first in server.js to ensure CPU-only execution
 
 /**
  * Cross-Encoder service for reranking search results

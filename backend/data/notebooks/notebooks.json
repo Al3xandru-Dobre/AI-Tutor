@@ -14,5 +14,23 @@
     "practiceCount": 0,
     "lastPracticed": null,
     "metadata": {}
+  },
+  "2c8fb79a9f6bd91f": {
+    "id": "2c8fb79a9f6bd91f",
+    "title": "test",
+    "content": "ceva",
+    "type": "guide",
+    "category": "grammar",
+    "tags": [
+      "grammar"
+    ],
+    "vocabularyIds": [],
+    "createdAt": "2025-11-02T19:55:14.007Z",
+    "updatedAt": "2025-11-02T19:55:14.007Z",
+    "difficulty": "beginner",
+    "masteryLevel": 0,
+    "practiceCount": 0,
+    "lastPracticed": null,
+    "metadata": {}
   }
 }

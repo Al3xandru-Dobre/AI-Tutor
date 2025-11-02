@@ -692,10 +692,82 @@ async function exportNotebooks(req, res) {
     }
 }
 
+/**
+ * GET /api/notebooks/vocabulary/leeches
+ * Get leech cards (cards with lapses >= threshold)
+ */
+async function getLeeches(req, res) {
+    try {
+        const { vocabulary } = getServices();
+        const threshold = parseInt(req.query.threshold) || 8;
+
+        const leeches = await vocabulary.getLeeches(threshold);
+        res.json({
+            success: true,
+            count: leeches.length,
+            threshold,
+            leeches
+        });
+    } catch (error) {
+        console.error('Error getting leeches:', error);
+        res.status(500).json({ error: error.message || 'Failed to get leeches' });
+    }
+}
+
+/**
+ * GET /api/notebooks/vocabulary/source/:source
+ * Get vocabulary by extraction source (manual/ai/hybrid)
+ */
+async function getVocabularyBySource(req, res) {
+    try {
+        const { vocabulary } = getServices();
+        const { source } = req.params;
+
+        if (!['manual', 'ai', 'hybrid'].includes(source)) {
+            return res.status(400).json({
+                error: 'Invalid source. Must be: manual, ai, or hybrid'
+            });
+        }
+
+        const vocabList = await vocabulary.getVocabularyBySource(source);
+        res.json({
+            success: true,
+            source,
+            count: vocabList.length,
+            vocabulary: vocabList
+        });
+    } catch (error) {
+        console.error('Error getting vocabulary by source:', error);
+        res.status(500).json({ error: error.message || 'Failed to get vocabulary by source' });
+    }
+}
+
+/**
+ * GET /api/notebooks/vocabulary/conversation/:conversationId
+ * Get vocabulary from a specific conversation
+ */
+async function getVocabularyByConversation(req, res) {
+    try {
+        const { vocabulary } = getServices();
+        const { conversationId } = req.params;
+
+        const vocabList = await vocabulary.getVocabularyByConversation(conversationId);
+        res.json({
+            success: true,
+            conversationId,
+            count: vocabList.length,
+            vocabulary: vocabList
+        });
+    } catch (error) {
+        console.error('Error getting vocabulary by conversation:', error);
+        res.status(500).json({ error: error.message || 'Failed to get vocabulary by conversation' });
+    }
+}
+
 module.exports = {
     // Health check
     healthCheck,
-    
+
     // Vocabulary controllers
     addVocabulary,
     getAllVocabulary,
@@ -704,7 +776,10 @@ module.exports = {
     deleteVocabulary,
     updateVocabularyMastery,
     getVocabularyForReview,
-    
+    getLeeches,
+    getVocabularyBySource,
+    getVocabularyByConversation,
+
     // Notebook controllers
     createNotebookEntry,
     getAllNotebookEntries,
@@ -715,18 +790,18 @@ module.exports = {
     unlinkVocabularyFromNotebook,
     getNotebookVocabulary,
     updateNotebookPractice,
-    
+
     // Exercise & Guide helpers
     createExercise,
     createGuide,
     getExercises,
     getGuides,
-    
+
     // Analytics controllers
     getVocabularyStats,
     getNotebookStats,
     getLearningOverview,
-    
+
     // Import/Export controllers
     exportVocabulary,
     exportNotebooks
