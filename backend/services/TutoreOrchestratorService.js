@@ -1,5 +1,7 @@
 // services/TutorOrchestratorService.js - Updated for EnhancedRAG Integration
 
+const { model } = require("@tensorflow/tfjs-node");
+
 class TutorOrchestratorService {
   constructor(ragService, internetService, ollamaService, historyRAGService = null) {
     // Services (ragService is now EnhancedRAGService)
@@ -7,6 +9,7 @@ class TutorOrchestratorService {
     this.internetService = internetService;
     this.ollamaService = ollamaService;
     this.historyRAGService = historyRAGService;
+    this.modelProvider = null;
     
     // Configuration
     this.maxLocalResults = 3;
@@ -25,6 +28,23 @@ class TutorOrchestratorService {
       }
     };
   }
+
+  setModelProvider(modelProvider){
+    this.modelProvider = modelProvider;
+    console.log('🔗 ModelProvider linked to orchestrator');
+  }
+
+   async generateResponse(prompt, options = {}) {
+    if (this.modelProvider) {
+      // Use ModelProvider for multi-model support
+      return await this.modelProvider.generate(prompt, options);
+    } else {
+      // Fallback to direct Ollama
+      return await this.ollamaService.generate(prompt, 0.7, 2000);
+    }
+  }  
+  
+
 
   /**
    * Main orchestration method - Enhanced with ChromaDB semantic search
@@ -167,16 +187,52 @@ class TutorOrchestratorService {
         history_context: augmentedContext.history,
         user_profile: userProfile,
         combined_sources: augmentedContext.summary,
-        search_mode: this.ragService.useChromaDB ? 'semantic' : 'keyword'
+        search_mode: this.ragService.useChromaDB ? 'semantic' : 'keyword',
+        conversationHistory: context.conversationHistory || []  // Pass full conversation history
       };
       
-      console.log('  🚀 Calling ollamaService.tutorChat...');
+      console.log('  🚀 Calling generateResponse...');
       console.log(`  Query: "${query}"`);
       console.log(`  Context keys: ${Object.keys(ollamaContext).join(', ')}`);
-      
-      const response = await this.ollamaService.tutorChat(query, ollamaContext);
-      
-      console.log('  ✅ Ollama response received');
+      console.log(`  Conversation history: ${ollamaContext.conversationHistory.length} messages`);
+
+      // Determine if we're using a cloud provider or Ollama
+      const usingCloudProvider = context.modelProvider && context.modelProvider !== 'ollama';
+
+      let response;
+      if (usingCloudProvider && ollamaContext.conversationHistory.length > 0) {
+        // For cloud providers, use conversation history as message array
+        console.log('  ☁️  Using cloud provider with conversation history');
+
+        // Build system message with all RAG context
+        const systemMessage = this.buildSystemMessage(ollamaContext);
+
+        // Prepare messages array with system prompt + conversation history
+        const messages = [
+          { role: 'system', content: systemMessage },
+          ...ollamaContext.conversationHistory
+        ];
+
+        response = await this.generateResponse(messages, {
+          provider: context.modelProvider,
+          model: context.model,
+          temperature: 0.7,
+          maxTokens: 4096
+        });
+      } else {
+        // For Ollama, build final prompt with all context (traditional approach)
+        console.log('  🏠 Using Ollama with prompt-based context');
+        const finalPrompt = this.buildFinalPrompt(query, ollamaContext);
+
+        response = await this.generateResponse(finalPrompt, {
+          provider: context.modelProvider,
+          model: context.model,
+          temperature: 0.7,
+          maxTokens: 4096
+        });
+      }
+
+      console.log('  ✅ Response received');
       console.log(`  Response length: ${response.length} characters`);
 
       // ============================================
@@ -219,12 +275,19 @@ class TutorOrchestratorService {
       // Fallback Strategy
       // ============================================
       console.log('⚠️ Falling back to local RAG only...');
-      
+
       const localResults = await this.searchLocalContent(query, userLevel);
-      const response = await this.ollamaService.tutorChat(query, {
+      const fallbackContext = {
         ...context,
         level: userLevel,
         rag_context: localResults
+      };
+
+      const fallbackPrompt = this.buildFinalPrompt(query, fallbackContext);
+      const response = await this.generateResponse(fallbackPrompt, {
+        provider: context.modelProvider,
+        temperature: 0.7,
+        maxTokens: 2000
       });
 
       return {
@@ -530,6 +593,85 @@ class TutorOrchestratorService {
     };
 
     return stats;
+  }
+
+  /**
+   * Build system message for cloud providers (includes all RAG context)
+   * This is used with conversation history in message array format
+   */
+  buildSystemMessage(context) {
+    let systemPrompt = `You are an expert Japanese language tutor. You are helping a ${context.level} level student.
+
+TEACHING GUIDELINES:
+- Explain Japanese concepts, grammar, and vocabulary IN ENGLISH
+- Use Japanese text only for examples and vocabulary items being taught
+- Be thorough, educational, and encouraging
+- Provide practical examples the student can use immediately
+- When showing Japanese text, include romanization when helpful
+- Show kanji with furigana when appropriate (e.g., 本を読む (hon o yomu))`;
+
+    // Add RAG context if available
+    if (context.rag_context && context.rag_context.length > 0) {
+      systemPrompt += `\n\nLOCAL REFERENCE MATERIALS:`;
+      context.rag_context.forEach((ref, index) => {
+        systemPrompt += `\n${index + 1}. ${ref.title || 'Grammar Reference'}`;
+        if (ref.content) {
+          const content = ref.content.length > 300 ? ref.content.substring(0, 300) + '...' : ref.content;
+          systemPrompt += `\n   ${content}`;
+        }
+      });
+    }
+
+    // Add internet context if available
+    if (context.internet_context && context.internet_context.length > 0) {
+      systemPrompt += `\n\nINTERNET REFERENCE MATERIALS:`;
+      context.internet_context.forEach((ref, index) => {
+        systemPrompt += `\n${index + 1}. ${ref.title}`;
+        if (ref.snippet) {
+          systemPrompt += `\n   ${ref.snippet}`;
+        }
+      });
+    }
+
+    // Add history RAG context (semantic search results from past conversations)
+    if (context.history_context && context.history_context.length > 0) {
+      systemPrompt += `\n\nRELEVANT PAST TOPICS (from previous conversations):`;
+      context.history_context.forEach((ref, index) => {
+        systemPrompt += `\n${index + 1}. ${ref.content}`;
+      });
+    }
+
+    systemPrompt += `\n\nIMPORTANT:
+- Use the reference materials above to provide accurate answers
+- The conversation history shows the full context of this ongoing discussion
+- Build upon what the student has already learned
+- Avoid repeating information unless asked for clarification`;
+
+    return systemPrompt;
+  }
+
+  /**
+   * Build final prompt with all context for LLM (used by Ollama)
+   */
+  buildFinalPrompt(query, context) {
+    let prompt = `You are a helpful Japanese language tutor. Answer the following question:\n\n${query}\n\n`;
+
+    if (context.rag_context && context.rag_context.length > 0) {
+      prompt += `\nRelevant knowledge base content:\n${context.rag_context.map(r => r.content).join('\n\n')}\n`;
+    }
+
+    if (context.internet_context && context.internet_context.length > 0) {
+      prompt += `\nInternet sources:\n${context.internet_context.map(r => r.content).join('\n\n')}\n`;
+    }
+
+    if (context.history_context && context.history_context.length > 0) {
+      prompt += `\nPrevious conversation context:\n${context.history_context.map(r => r.content).join('\n\n')}\n`;
+    }
+
+    prompt += `\nUser proficiency level: ${context.level}\n`;
+    prompt += `\nProvide a clear, helpful answer appropriate for a ${context.level} level student.`;
+
+    return prompt;
   }
 
   /**

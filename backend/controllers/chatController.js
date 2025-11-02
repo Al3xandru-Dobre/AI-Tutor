@@ -7,9 +7,18 @@ const { getServices } = require('../middlewear/initialise');
 async function handleChat(req, res) {
     try {
         // Get initialized services (middleware ensures they're ready)
-        const { ollama, orchestrator, history, historyRAG, advancedRag } = getServices();
+        const { ollama, orchestrator, history, historyRAG, advancedRag, modelProvider } = getServices();
 
-        let { message, level = 'beginner', context = {}, useOrchestrator = true, conversationId = null, useAdvancedRAG = false } = req.body;
+        let {
+            message,
+            level = 'beginner',
+            context = {},
+            useOrchestrator = true,
+            conversationId = null,
+            useAdvancedRAG = false,
+            provider = null,
+            model = null
+        } = req.body;
         if(!message || message.trim().length === 0) {
             return res.status(400).json({error: 'Message is required'});
         }  
@@ -18,6 +27,16 @@ async function handleChat(req, res) {
             conversationId = newConversation.id;
         }
         await history.addMessage(conversationId, {role: 'user', content:message});
+
+        // Retrieve conversation history for context
+        // This ensures the model has access to all previous messages
+        const conversationHistory = await history.getConversationMessages(conversationId, {
+            maxTokens: 8000,  // Reserve tokens for context (adjustable based on model)
+            preserveRecent: true  // Keep most recent messages if truncation is needed
+        });
+
+        console.log(`📝 Including ${conversationHistory.length} messages from conversation history`);
+
         const startTime = Date.now();
         let response, sources = {}, ollamaMetadata = {};
         
@@ -52,8 +71,11 @@ async function handleChat(req, res) {
                 level,
                 {
                     ...context,
+                    conversationHistory: conversationHistory,  // Pass full conversation context
                     preloadedRAGResults: ragResults.length > 0 ? ragResults : undefined,
-                    useAdvancedRAG: useAdvancedRAG
+                    useAdvancedRAG: useAdvancedRAG,
+                    modelProvider: provider,
+                    model: model
                 }
             );
 
@@ -68,8 +90,11 @@ async function handleChat(req, res) {
       sources = orchestratorResult.sources;
 
     } else {
-            const ollamaResult = await ollama.tutorChat(message, {level});
-        
+            const ollamaResult = await ollama.tutorChat(message, {
+                level,
+                conversationHistory: conversationHistory  // Include conversation history even without orchestrator
+            });
+
             if (typeof ollamaResult === 'object' && ollamaResult.response) {
                 response = ollamaResult.response;
                 ollamaMetadata = ollamaResult.metadata || {};
@@ -80,8 +105,8 @@ async function handleChat(req, res) {
             sources = {
                 local_sources: 0,
                 internet_sources: 0,
-                history_context: 0,
-                summary: 'Direct response without augmentation'
+                history_context: conversationHistory.length,
+                summary: `Direct response with ${conversationHistory.length} conversation messages`
             };
         }
 
@@ -97,7 +122,8 @@ async function handleChat(req, res) {
             response,
             conversationId,
             timestamp: new Date().toISOString(),
-            model: ollama.model,
+            model: model || ollama.model,
+            provider: provider || (modelProvider && modelProvider.currentProvider) || 'ollama',
             sources,
             processing_time: totalTime,
             features: {

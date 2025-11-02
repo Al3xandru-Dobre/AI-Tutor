@@ -1,16 +1,22 @@
 // services/QueryExpansionService.js - Expands queries for better search results
 
+const JapaneseTokenizerService = require('./JapaneseTokenizerService');
+
 class QueryExpansionService {
   constructor(options = {}) {
     this.maxExpansions = options.maxExpansions || 5;
     this.useSemanticExpansion = options.useSemanticExpansion !== false;
-    
+
+    // Japanese tokenizer
+    this.japaneseTokenizer = new JapaneseTokenizerService();
+    this.tokenizerInitialized = false;
+
     // Japanese-specific synonym mappings
     this.synonymMaps = this.buildSynonymMaps();
-    
+
     // Grammar patterns for expansion
     this.grammarPatterns = this.buildGrammarPatterns();
-    
+
     // Statistics
     this.stats = {
       totalExpansions: 0,
@@ -20,8 +26,27 @@ class QueryExpansionService {
         related: 0,
         grammar: 0,
         romaji: 0
-      }
+      },
+      tokenizerUsed: 0
     };
+  }
+
+  /**
+   * Initialize the query expansion service
+   */
+  async initialize() {
+    console.log('🔍 Initializing Query Expansion Service...');
+
+    try {
+      await this.japaneseTokenizer.initialize();
+      this.tokenizerInitialized = true;
+      console.log('   ✅ Query Expansion Service initialized with Japanese tokenizer');
+    } catch (error) {
+      console.warn('   ⚠️  Japanese tokenizer initialization failed, using fallback');
+      this.tokenizerInitialized = false;
+    }
+
+    return true;
   }
 
   /**
@@ -85,14 +110,30 @@ class QueryExpansionService {
     const queryLower = query.toLowerCase();
     const synonyms = new Set();
 
-    // Check against synonym maps
+    // Use Japanese tokenizer if available for better keyword extraction
+    let queryKeywords = [queryLower];
+    if (this.tokenizerInitialized) {
+      try {
+        queryKeywords = this.japaneseTokenizer.extractKeywords(query, { maxKeywords: 10 });
+        this.stats.tokenizerUsed++;
+      } catch (error) {
+        console.warn('  ⚠️  Tokenizer error, using fallback:', error.message);
+        queryKeywords = [queryLower];
+      }
+    }
+
+    // Check against synonym maps with extracted keywords
     for (const [term, syns] of Object.entries(this.synonymMaps)) {
-      if (queryLower.includes(term)) {
+      const termMatch = queryKeywords.some(keyword =>
+        keyword.toLowerCase().includes(term) || term.includes(keyword.toLowerCase())
+      );
+
+      if (termMatch || queryLower.includes(term)) {
         // Filter by level
-        const levelAppropriate = syns.filter(syn => 
+        const levelAppropriate = syns.filter(syn =>
           this.isLevelAppropriate(syn.level, level)
         );
-        
+
         levelAppropriate.forEach(syn => {
           synonyms.add(syn.term);
           this.stats.expansionTypes.synonym++;

@@ -40,6 +40,27 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 
 // ========================================
+// SERVICE READINESS MIDDLEWARE
+// ========================================
+app.use('/api', (req, res, next) => {
+  // Skip health check endpoints
+  if (req.path.includes('/health')) {
+    return next();
+  }
+  
+  try {
+    ensureServicesInitialized(req, res, next);
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Services not fully initialized',
+      message: 'Please try again in a moment',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+
+// ========================================
 // MOUNT ALL API ROUTES
 // ========================================
 app.use('/api', apiRoutes);
@@ -60,7 +81,7 @@ function startServer() {
 
     console.log('\n╔══════════════════════════════════════════════════════════════╗');
     console.log('║                                                              ║');
-    console.log('║     🚀 Japanese Tutor v3.0 - ChromaDB Enhanced Edition      ║');
+    console.log('║     🚀 Japanese Tutor v3.5 - ChromaDB Enhanced Edition      ║');
     console.log('║                                                              ║');
     console.log('╚══════════════════════════════════════════════════════════════╝\n');
 

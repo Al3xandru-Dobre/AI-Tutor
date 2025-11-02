@@ -3,6 +3,12 @@
 
 // Sidebar toggle functionality
 function toggleSidebar() {
+    // Guard against being called before DOM is ready
+    if (!sidebar || !appLayout || !sidebarOverlay) {
+        console.warn('toggleSidebar called before DOM is ready');
+        return;
+    }
+
     isSidebarCollapsed = !isSidebarCollapsed;
     sidebar.classList.toggle('collapsed', isSidebarCollapsed);
     appLayout.classList.toggle('sidebar-collapsed', isSidebarCollapsed);
@@ -10,6 +16,63 @@ function toggleSidebar() {
     // Show/hide overlay on mobile
     if (window.innerWidth <= 768) {
         sidebarOverlay.classList.toggle('visible', !isSidebarCollapsed);
+    }
+}
+
+function toggleTheme() {
+    const body = document.body;
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const sunIcon = document.querySelector('.theme-icon-sun');
+    const moonIcon = document.querySelector('.theme-icon-moon');
+
+    // Guard against missing elements
+    if (!sunIcon || !moonIcon) {
+        console.warn('Theme icons not found in DOM');
+        return;
+    }
+
+    if (body.classList.contains('dark-theme')) {
+        // Switch to light theme
+        body.classList.remove('dark-theme');
+        body.classList.add('light-theme');
+        localStorage.setItem('theme', 'light');
+
+        // Show sun icon (we're in light mode, click to go dark)
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+    } else {
+        // Switch to dark theme
+        body.classList.remove('light-theme');
+        body.classList.add('dark-theme');
+        localStorage.setItem('theme', 'dark');
+
+        // Show moon icon (we're in dark mode, click to go light)
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+    }
+}
+
+// Initialize theme on page load
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const body = document.body;
+    const sunIcon = document.querySelector('.theme-icon-sun');
+    const moonIcon = document.querySelector('.theme-icon-moon');
+
+    if (savedTheme === 'light') {
+        body.classList.add('light-theme');
+        body.classList.remove('dark-theme');
+        if (sunIcon && moonIcon) {
+            sunIcon.style.display = 'block';
+            moonIcon.style.display = 'none';
+        }
+    } else {
+        body.classList.add('dark-theme');
+        body.classList.remove('light-theme');
+        if (sunIcon && moonIcon) {
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'block';
+        }
     }
 }
 
@@ -55,6 +118,11 @@ Your feedback:`);
         alert('Thank you for your feedback! We appreciate your input and will use it to improve the app.');
         console.log('User feedback:', feedback);
     }
+}
+
+// Navigation Functions
+function goToNotebook() {
+    window.location.href = 'notebook.html';
 }
 
 // Format date for display
@@ -137,6 +205,10 @@ function toggleAdvancedRAG() {
 
 // Auto-resize textarea
 function autoResizeTextarea() {
+    if (!messageInput) {
+        console.warn('autoResizeTextarea called before messageInput is initialized');
+        return;
+    }
     messageInput.style.height = 'auto';
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
 }
@@ -163,6 +235,12 @@ function setLoading(loading) {
     isLoading = loading;
     const sendBtn = document.getElementById('sendBtn');
     const chat = document.getElementById('chatContainer');
+
+    // Guard against missing elements
+    if (!sendBtn || !messageInput || !chat) {
+        console.warn('setLoading called before DOM elements are initialized');
+        return;
+    }
 
     sendBtn.disabled = loading;
     messageInput.disabled = loading;

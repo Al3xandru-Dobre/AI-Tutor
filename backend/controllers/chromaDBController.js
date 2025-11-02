@@ -1,7 +1,16 @@
-const { getServices } = require('../middlewear/initialise');
+const { getServices, areServicesInitialized } = require('../middlewear/initialise');
 
 async function healthCheck(req, res) {
     try {
+    // Check if services are initialized first
+    if (!areServicesInitialized()) {
+      return res.json({
+        status: 'initializing',
+        message: 'Services are currently initializing. Please wait...',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const { rag } = getServices();
     if (!rag.useChromaDB) {
       return res.json({

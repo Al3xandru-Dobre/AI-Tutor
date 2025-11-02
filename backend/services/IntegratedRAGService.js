@@ -14,31 +14,32 @@ class IntegratedRAGService {
     this.collectionName = options.collectionName || 'japanese_tutor_advanced';
     this.collection = null;
     this.embeddingFunction = null;
-    
+
     // Initialize sub-services
     this.hybridSearch = null;
     this.queryExpansion = new QueryExpansionService({
       maxExpansions: options.maxExpansions || 5
     });
     this.embeddingService = new FineTunedEmbeddingService({
-      baseModel: options.embeddingModel || 'all-MiniLM-L6-v2',
+      baseModel: options.embeddingModel || 'Xenova/multilingual-e5-base',
       japaneseBoost: 1.3,
       grammarBoost: 1.2
     });
-    
+
     // Feature flags
     this.useHybridSearch = options.useHybridSearch !== false;
     this.useQueryExpansion = options.useQueryExpansion !== false;
     this.useCustomEmbeddings = options.useCustomEmbeddings !== false;
-    
+
     // Configuration
     this.maxChunkSize = options.maxChunkSize || 800;
     this.chunkOverlap = options.chunkOverlap || 100;
-    
+
     // State
     this.isInitialized = false;
+    this.advancedFeaturesReady = false; // NEW: Track advanced features separately
     this.documents = new Map();
-    
+
     // Statistics
     this.stats = {
       totalSearches: 0,
@@ -54,28 +55,32 @@ class IntegratedRAGService {
    */
   async initialize() {
     console.log('🚀 Initializing Integrated RAG Service...');
-    
+
     try {
-      // Step 1: Initialize embedding service
-      console.log('1️⃣  Initializing embedding service...');
-      await this.embeddingService.initialize();
-      
-      // Step 2: Initialize ChromaDB
-      console.log('2️⃣  Connecting to ChromaDB...');
+      // Step 1: Initialize ChromaDB first (fast)
+      console.log('1️⃣  Connecting to ChromaDB...');
       await this.initializeChromaDB();
-      
-      // Step 3: Initialize hybrid search
-      console.log('3️⃣  Initializing hybrid search...');
+
+      // Step 2: Initialize hybrid search
+      console.log('2️⃣  Initializing hybrid search...');
       this.hybridSearch = new HybridSearchService(this.collection, {
         semanticWeight: 0.7,
         keywordWeight: 0.3
       });
-      
-      // Step 4: Mark as initialized BEFORE loading sample data
+
+      // Step 3: Mark as initialized early (allows server to start)
       this.isInitialized = true;
-      console.log('✅ Integrated RAG Service initialized successfully!\n');
-      this.printFeatureSummary();
-      
+      console.log('✅ Integrated RAG Service basic initialization complete!\n');
+
+      // Step 4: Initialize advanced features in background (non-blocking)
+      console.log('3️⃣  Starting background initialization of advanced features...');
+      this.initializeAdvancedFeatures().then(() => {
+        console.log('✅ Advanced features initialized successfully');
+      }).catch(err => {
+        console.error('⚠️  Advanced features initialization error:', err.message);
+        console.log('   System will continue with basic RAG features');
+      });
+
       // Load sample data in background (non-blocking)
       const count = await this.collection.count();
       if (count === 0) {
@@ -88,13 +93,54 @@ class IntegratedRAGService {
       } else {
         console.log(`4️⃣  Found ${count} existing documents`);
       }
-      
+
       return true;
-      
+
     } catch (error) {
       console.error('❌ Initialization failed:', error);
       this.isInitialized = false;
       return false;
+    }
+  }
+
+  /**
+   * Initialize advanced features (embeddings, hybrid search, query expansion)
+   * This runs in the background to avoid blocking server startup
+   * @private
+   */
+  async initializeAdvancedFeatures() {
+    console.log('   🔧 Loading transformer models (this may take 1-2 minutes on first run)...');
+
+    try {
+      // Initialize embedding service (downloads models on first run)
+      console.log('   📥 Initializing embedding service...');
+      await this.embeddingService.initialize();
+      console.log('   ✅ Embedding service ready');
+
+      // Initialize hybrid search with cross-encoder
+      if (this.hybridSearch) {
+        console.log('   📥 Initializing hybrid search with cross-encoder...');
+        await this.hybridSearch.initialize();
+        console.log('   ✅ Hybrid search ready');
+      }
+
+      // Initialize query expansion with tokenizer
+      if (this.queryExpansion) {
+        console.log('   📥 Initializing query expansion with Japanese tokenizer...');
+        await this.queryExpansion.initialize();
+        console.log('   ✅ Query expansion ready');
+      }
+
+      // Mark advanced features as ready
+      this.advancedFeaturesReady = true;
+      console.log('   🎉 All advanced features loaded!');
+      this.printFeatureSummary();
+
+    } catch (error) {
+      console.error('   ❌ Error initializing advanced features:', error.message);
+      console.log('   ⚠️  System will continue with basic RAG features');
+      this.advancedFeaturesReady = false;
+      // Don't throw - allow system to continue with basic features
     }
   }
 
@@ -121,20 +167,27 @@ class IntegratedRAGService {
         }
       };
     }
-    
+
+    // Check if advanced features are ready
+    const featuresReady = this.advancedFeaturesReady;
+    if (!featuresReady) {
+      console.log('⚠️  Advanced features still loading, using basic search...');
+    }
+
     const {
       maxResults = 5,
-      useHybrid = this.useHybridSearch,
-      expandQuery = this.useQueryExpansion,
-      rerank = true
+      useHybrid = this.useHybridSearch && featuresReady,
+      expandQuery = this.useQueryExpansion && featuresReady,
+      rerank = featuresReady
     } = options;
 
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`🔍 ADVANCED SEARCH`);
+    console.log(`🔍 ${featuresReady ? 'ADVANCED' : 'BASIC'} SEARCH`);
     console.log(`Query: "${query}"`);
     console.log(`Level: ${level}`);
+    console.log(`Features: ${featuresReady ? 'All enabled' : 'Limited (models loading)'}`);
     console.log(`${'='.repeat(60)}`);
-    
+
     const startTime = Date.now();
     this.stats.totalSearches++;
 
@@ -142,41 +195,51 @@ class IntegratedRAGService {
       let searchQuery = query;
       let expansions = null;
 
-      // Phase 1: Query Expansion
-      if (expandQuery && this.useQueryExpansion) {
+      // Phase 1: Query Expansion (only if advanced features ready)
+      if (expandQuery && this.useQueryExpansion && featuresReady) {
         console.log('\n📝 Phase 1: Query Expansion');
-        expansions = await this.queryExpansion.expandQuery(query, level);
-        
-        console.log(`  Original: "${expansions.original}"`);
-        console.log(`  Synonyms: ${expansions.synonyms.slice(0, 3).join(', ')}`);
-        console.log(`  Related: ${expansions.related.slice(0, 2).join(', ')}`);
-        console.log(`  Total variations: ${expansions.combined.length}`);
-        
-        this.stats.expandedQueries++;
+        try {
+          expansions = await this.queryExpansion.expandQuery(query, level);
+
+          console.log(`  Original: "${expansions.original}"`);
+          console.log(`  Synonyms: ${expansions.synonyms.slice(0, 3).join(', ')}`);
+          console.log(`  Related: ${expansions.related.slice(0, 2).join(', ')}`);
+          console.log(`  Total variations: ${expansions.combined.length}`);
+
+          this.stats.expandedQueries++;
+        } catch (error) {
+          console.warn('  ⚠️  Query expansion failed, using original query:', error.message);
+          expansions = null;
+        }
       }
 
       // Phase 2: Hybrid Search
       let results;
-      if (useHybrid && this.useHybridSearch) {
+      if (useHybrid && this.useHybridSearch && this.hybridSearch && featuresReady) {
         console.log('\n🔄 Phase 2: Hybrid Search (Semantic + Keyword)');
-        
-        if (expansions && expansions.combined.length > 1) {
-          // Search with multiple query variations
-          results = await this.multiQueryHybridSearch(
-            expansions.combined,
-            level,
-            maxResults
-          );
-        } else {
-          // Single query hybrid search
-          results = await this.hybridSearch.hybridSearch(
-            query,
-            level,
-            { maxResults, rerank }
-          );
+
+        try {
+          if (expansions && expansions.combined.length > 1) {
+            // Search with multiple query variations
+            results = await this.multiQueryHybridSearch(
+              expansions.combined,
+              level,
+              maxResults
+            );
+          } else {
+            // Single query hybrid search
+            results = await this.hybridSearch.hybridSearch(
+              query,
+              level,
+              { maxResults, rerank: false } // Disable rerank if models not ready
+            );
+          }
+
+          this.stats.hybridSearches++;
+        } catch (error) {
+          console.warn('  ⚠️  Hybrid search failed, falling back to semantic search:', error.message);
+          results = await this.semanticSearch(query, level, maxResults);
         }
-        
-        this.stats.hybridSearches++;
       } else {
         console.log('\n🔎 Phase 2: Semantic Search Only');
         results = await this.semanticSearch(query, level, maxResults);
@@ -199,12 +262,14 @@ class IntegratedRAGService {
           searchTime,
           originalQuery: query,
           expansions: expansions?.combined || [query],
+          advancedFeaturesReady: featuresReady,
           features: {
-            hybridSearch: useHybrid && this.useHybridSearch,
-            queryExpansion: expandQuery && this.useQueryExpansion,
-            customEmbeddings: this.useCustomEmbeddings,
-            reranking: rerank
-          }
+            hybridSearch: useHybrid && this.useHybridSearch && featuresReady,
+            queryExpansion: expandQuery && this.useQueryExpansion && featuresReady,
+            customEmbeddings: this.useCustomEmbeddings && featuresReady,
+            reranking: rerank && featuresReady
+          },
+          warning: !featuresReady ? 'Advanced features still loading, using basic search' : null
         }
       };
 

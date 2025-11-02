@@ -1,8 +1,18 @@
-const { getServices } = require('../middlewear/initialise');
+const { getServices, areServicesInitialized } = require('../middlewear/initialise');
 
 // Enhanced health check endpoint
 async function enhancedHealthCheck(req, res) {
   try {
+    // Check if services are initialized first
+    if (!areServicesInitialized()) {
+      return res.json({
+        status: 'initializing',
+        message: 'Services are currently initializing. Please wait...',
+        timestamp: new Date().toISOString(),
+        system_ready: false
+      });
+    }
+
     const { ollama, rag, internetService, orchestrator, historyRAG } = getServices();
 
     const ollamaStatus = await ollama.checkStatus();
@@ -53,6 +63,18 @@ async function enhancedHealthCheck(req, res) {
 
 // Test endpoint
 function testEndpoint(req, res) {
+  // Check if services are initialized
+  if (!areServicesInitialized()) {
+    return res.json({
+      message: 'Japanese Tutor API v3.0 - ChromaDB Enhanced!',
+      timestamp: new Date().toISOString(),
+      version: '3.0.0-chromadb',
+      status: 'initializing',
+      system_ready: false,
+      note: 'Services are currently initializing. Please wait and try again in a few seconds.'
+    });
+  }
+
   const { rag, ollama, internetService, history, historyRAG } = getServices();
 
   const features = {

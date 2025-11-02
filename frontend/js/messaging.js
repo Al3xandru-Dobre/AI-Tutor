@@ -1,6 +1,140 @@
 // Messaging Module
 // Functions for sending/receiving messages and AI responses
 
+// Simple Markdown Parser
+function parseMarkdown(text) {
+    if (!text) return '';
+
+    // Trim excessive whitespace and normalize line endings
+    text = text.trim().replace(/\r\n/g, '\n');
+
+    // Remove excessive blank lines (more than 2 consecutive newlines)
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    // Escape HTML first to prevent XSS
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Code blocks (must come before headers and other processing)
+    // Support both plain code blocks and language-specific ones
+    html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, function(_match, lang, code) {
+        const language = lang ? ` class="language-${lang}"` : '';
+        return '<pre><code' + language + '>' + code.trim() + '</code></pre>';
+    });
+
+    // Tables (process before other replacements)
+    const tableRegex = /(\|[^\n]+\|[\r\n]+)(\|[-:| ]+\|[\r\n]+)((?:\|[^\n]+\|[\r\n]*)+)/g;
+    html = html.replace(tableRegex, function(match, header, separator, rows) {
+        let tableHTML = '<table>\n<thead>\n<tr>\n';
+
+        // Parse header
+        const headers = header.split('|').filter(cell => cell.trim());
+        headers.forEach(cell => {
+            tableHTML += `<th>${cell.trim()}</th>\n`;
+        });
+        tableHTML += '</tr>\n</thead>\n<tbody>\n';
+
+        // Parse rows
+        const rowLines = rows.trim().split('\n');
+        rowLines.forEach(row => {
+            if (row.trim()) {
+                tableHTML += '<tr>\n';
+                const cells = row.split('|').filter(cell => cell.trim());
+                cells.forEach(cell => {
+                    tableHTML += `<td>${cell.trim()}</td>\n`;
+                });
+                tableHTML += '</tr>\n';
+            }
+        });
+
+        tableHTML += '</tbody>\n</table>';
+        return tableHTML;
+    });
+
+    // Headers (must be at start of line) - process in order from most specific to least
+    html = html.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
+    html = html.replace(/^##### (.*$)/gim, '<h5>$1</h5>');
+    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    // Horizontal rules
+    html = html.replace(/^---$/gim, '<hr>');
+    html = html.replace(/^\*\*\*$/gim, '<hr>');
+
+    // Blockquotes - handle consecutive blockquotes properly
+    html = html.replace(/^&gt; (.+)$/gim, '::BLOCKQUOTE::$1');
+    html = html.replace(/(::BLOCKQUOTE::.+?)(?=\n(?!::BLOCKQUOTE::)|$)/gs, function(match) {
+        const lines = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => line.replace(/^::BLOCKQUOTE::/, ''))
+            .join('<br>');
+        return '<blockquote>' + lines + '</blockquote>';
+    });
+
+    // Lists (unordered) - improved to handle multiple lines
+    html = html.replace(/^\* (.+)$/gim, '::UL_ITEM::$1');
+    html = html.replace(/^- (.+)$/gim, '::UL_ITEM::$1');
+
+    // Lists (ordered)
+    html = html.replace(/^\d+\. (.+)$/gim, '::OL_ITEM::$1');
+
+    // Wrap list items - improved to prevent empty list items
+    html = html.replace(/(::UL_ITEM::.+?)(?=\n(?!::UL_ITEM::)|$)/gs, function(match) {
+        const items = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                return line.replace(/^::UL_ITEM::/, '<li>') + '</li>';
+            }).join('\n');
+        return '<ul>\n' + items + '\n</ul>';
+    });
+
+    html = html.replace(/(::OL_ITEM::.+?)(?=\n(?!::OL_ITEM::)|$)/gs, function(match) {
+        const items = match.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                return line.replace(/^::OL_ITEM::/, '<li>') + '</li>';
+            }).join('\n');
+        return '<ol>\n' + items + '\n</ol>';
+    });
+
+    // Bold and Italic (after lists to avoid conflicts)
+    html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Strikethrough
+    html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
+
+    // Inline code
+    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    // Split into paragraphs based on double newlines
+    const paragraphs = html.split('\n\n');
+    html = paragraphs.map(para => {
+        para = para.trim();
+        if (!para) return ''; // Skip empty paragraphs
+
+        // Don't wrap if already a block element
+        if (para.match(/^<(h[1-6]|table|ul|ol|pre|blockquote|hr|div)/i)) {
+            return para;
+        }
+
+        // Replace single newlines with <br> within paragraphs
+        para = para.replace(/\n/g, '<br>');
+
+        return '<p>' + para + '</p>';
+    }).filter(p => p).join('\n'); // Remove empty strings
+
+    return html;
+}
+
 // Get AI response
 async function getAIResponse(userMessage) {
     setLoading(true);
@@ -14,6 +148,11 @@ async function getAIResponse(userMessage) {
             conversationId: currentConversationId
         });
 
+        // Get current model selection if available
+        const modelSelection = typeof getCurrentModelSelection === 'function'
+            ? getCurrentModelSelection()
+            : { provider: null, model: null };
+
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -24,7 +163,9 @@ async function getAIResponse(userMessage) {
                 useOrchestrator: true,
                 useAdvancedRAG: isAdvancedRAGEnabled,
                 context: {},
-                conversationId: currentConversationId
+                conversationId: currentConversationId,
+                provider: modelSelection.provider,
+                model: modelSelection.model
             })
         });
 
@@ -148,8 +289,9 @@ function addMessage(data, type) {
             // Get timing info - support both old and new format
             const timing = data.total_time || data.processing_time || data.metadata?.processing_time || '?';
             const model = data.model || 'AI Tutor';
+            const provider = data.provider ? ` (${data.provider})` : '';
 
-            infoText = `<span>${model} • ${timing}ms${featuresText}</span>`;
+            infoText = `<span>${model}${provider} • ${timing}ms${featuresText}</span>`;
         } else {
             infoText = `<span>An error occurred. Try again.</span>`;
         }
@@ -164,7 +306,10 @@ function addMessage(data, type) {
     }
 
     // Handle both 'response' and 'content' properties
-    const messageContent = data.response || data.content || 'No response content';
+    const rawContent = data.response || data.content || 'No response content';
+
+    // Parse markdown for assistant messages, keep raw for user messages
+    const messageContent = type === 'assistant' ? parseMarkdown(rawContent) : rawContent;
 
     messageDiv.innerHTML = `
         <div class="message-header">${headers[type]}</div>
@@ -178,29 +323,50 @@ function addMessage(data, type) {
 
 // Test server connection (for debugging)
 async function testServerConnection() {
-    try {
-        console.log('🔍 Testing server connection...');
+    const maxRetries = 30; // Max 30 seconds
+    const retryDelay = 1000; // 1 second between retries
 
-        // Test 1: Basic server health
-        const healthResponse = await fetch('/api/health');
-        const healthData = await healthResponse.json();
-        console.log('✅ Health check:', healthData);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔍 Testing server connection (attempt ${attempt}/${maxRetries})...`);
 
-        // Test 2: ChromaDB health
-        const chromaResponse = await fetch('/api/chromadb/health');
-        const chromaData = await chromaResponse.json();
-        console.log('✅ ChromaDB check:', chromaData);
+            // Test 1: Basic server health
+            const healthResponse = await fetch('/api/health');
+            const healthData = await healthResponse.json();
+            console.log('✅ Health check:', healthData);
 
-        // Test 3: RAG stats
-        const ragResponse = await fetch('/api/rag/stats');
-        const ragData = await ragResponse.json();
-        console.log('✅ RAG stats:', ragData);
+            // If still initializing, wait and retry
+            if (healthData.status === 'initializing' || healthData.system_ready === false) {
+                console.log('⏳ Services still initializing, waiting...');
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    continue;
+                }
+                return false;
+            }
 
-        return true;
-    } catch (error) {
-        console.error('❌ Server connection test failed:', error);
-        return false;
+            // Test 2: ChromaDB health (only if services are ready)
+            const chromaResponse = await fetch('/api/chromadb/health');
+            const chromaData = await chromaResponse.json();
+            console.log('✅ ChromaDB check:', chromaData);
+
+            // Test 3: RAG stats
+            const ragResponse = await fetch('/api/rag/stats');
+            const ragData = await ragResponse.json();
+            console.log('✅ RAG stats:', ragData);
+
+            console.log('🎉 All services ready!');
+            return true;
+        } catch (error) {
+            console.error(`❌ Server connection test failed (attempt ${attempt}/${maxRetries}):`, error);
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
     }
+
+    console.error('❌ Server failed to initialize after maximum retries');
+    return false;
 }
 
 // Debug chat function

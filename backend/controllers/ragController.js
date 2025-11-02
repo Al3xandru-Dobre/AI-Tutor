@@ -1,7 +1,17 @@
-const { getServices } = require('../middlewear/initialise');
+const { getServices, areServicesInitialized } = require('../middlewear/initialise');
 
 async function RAGStatistics(req, res) {
     try {
+        // Check if services are initialized first
+        if (!areServicesInitialized()) {
+            return res.json({
+                status: 'initializing',
+                initialized: false,
+                message: 'Services are currently initializing. Please wait...',
+                timestamp: new Date().toISOString()
+            });
+        }
+
         const { rag } = getServices();
         const stats = rag.getStats();
         res.json(stats);

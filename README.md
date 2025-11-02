@@ -3,9 +3,9 @@
 [![Version](https://img.shields.io/badge/Version-3.3.0-blue)](https://github.com/Al3xandru-Dobre/AI-Tutor)
 [![Language](https://img.shields.io/badge/Language-Japanese-red)](https://github.com/Al3xandru-Dobre/AI-Tutor)
 [![AI](https://img.shields.io/badge/AI-Multi--Provider-blue)](https://github.com/Al3xandru-Dobre/AI-Tutor)
-[![RAG Enhanced](https://img.shields.io/badge/RAG-ChromaDB-green)](https://www.trychroma.com/)
+[![RAG](https://img.shields.io/badge/RAG-ChromaDB-green)](https://www.trychroma.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com/)
-[![Privacy First](https://img.shields.io/badge/Privacy-First-purple)](https://github.com/Al3xandru-Dobre/AI-Tutor)
+[![Privacy](https://img.shields.io/badge/Privacy-First-purple)](https://github.com/Al3xandru-Dobre/AI-Tutor)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **The Most Advanced Open-Source Japanese Language Learning Assistant**  

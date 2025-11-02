@@ -1,49 +1,70 @@
 // Conversation History Management
 // Functions for loading, rendering, and managing conversation history
+let historyChunkSize = 20; // Number of conversations to load at a time
+let currentHistoryOffset = 0; // Current offset for pagination
+let hasMoreHistory = true; // Flag to track if more history is available
+let isLoadingHistory = false; // Prevent multiple simultaneous loads
 
-// Load conversation history from the server
-async function loadHistory() {
+// Lazy loading implementation for conversation history
+async function loadHistoryChunk() {
+    if (isLoadingHistory || !hasMoreHistory) return;
+    
+    isLoadingHistory = true;
+    
+    // Add loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-more-history';
+    loadingDiv.innerHTML = '<p style="text-align: center; padding: 10px; font-size: 12px; opacity: 0.7;">Loading more...</p>';
+    historyList.appendChild(loadingDiv);
+    
     try {
-        const response = await fetch('/api/conversations');
-        if (response.ok) {
-            conversationHistory = await response.json();
-            renderHistory();
+        const response = await fetch(`/api/conversations?limit=${historyChunkSize}&offset=${currentHistoryOffset}`);
+        const conversations = await response.json();
+
+        if (conversations.length > 0) {
+            renderHistoryChunk(conversations);
+            currentHistoryOffset += conversations.length;
+            hasMoreHistory = conversations.length === historyChunkSize;
         } else {
-            throw new Error('Failed to load conversations');
+            hasMoreHistory = false;
+            // Remove loading indicator
+            loadingDiv.remove();
         }
     } catch (error) {
-        console.error('Error loading conversation history:', error);
-        historyList.innerHTML = `
-            <div class="empty-history">
-                <p>Unable to load conversation history</p>
-                <p style="font-size: 11px; opacity: 0.7;">Check your connection and try again</p>
-            </div>
-        `;
+        console.error('Error loading history chunk:', error);
+        // Remove loading indicator on error
+        loadingDiv.remove();
+    } finally {
+        isLoadingHistory = false;
     }
 }
 
-// Render the conversation history in the sidebar
-function renderHistory() {
-    if (conversationHistory.length === 0) {
-        historyList.innerHTML = `
-            <div class="empty-history">
-                <p>No conversations yet</p>
-                <p style="font-size: 11px; opacity: 0.7;">Start a new chat to begin your Japanese learning journey!</p>
-            </div>
-        `;
-        return;
+function handleHistoryScroll() {
+    if (historyList.scrollTop + historyList.clientHeight >= historyList.scrollHeight * 0.8) {
+        loadHistoryChunk();
     }
+}
 
-    historyList.innerHTML = conversationHistory.map(conversation => `
-        <div class="history-item ${conversation.id === currentConversationId ? 'active' : ''}"
-             data-id="${conversation.id}"
-             onclick="loadConversation('${conversation.id}')">
+function renderHistoryChunk(conversations) {
+    // Remove loading indicator if it exists
+    const loadingIndicator = historyList.querySelector('.loading-more-history');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+    
+    conversations.forEach(conversation => {
+        const historyItem = document.createElement('div');
+        historyItem.classList.add('history-item');
+        historyItem.classList.toggle('active', conversation.id === currentConversationId);
+        historyItem.setAttribute('data-id', conversation.id);
+        
+        historyItem.innerHTML = `
             <div class="history-item-content">
                 <div class="history-item-title">${conversation.title || 'Untitled Conversation'}</div>
                 <div class="history-item-date">${formatDate(conversation.createdAt)}</div>
             </div>
             <div class="history-item-actions">
-                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export conversation">
+                <button class="export-btn" onclick="event.stopPropagation(); showDocumentGenerationModal('${conversation.id}')" title="Export as document">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
                         <path d="M8.5 1.75a.75.75 0 0 0-1.5 0v6.5H4.56l3.22 3.22a.75.75 0 0 0 1.06 0l3.22-3.22H9.5v-6.5Zm-4 11a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7Z"/>
                     </svg>
@@ -54,8 +75,99 @@ function renderHistory() {
                     </svg>
                 </button>
             </div>
-        </div>
-    `).join('');
+        `;
+        
+        historyItem.onclick = () => loadConversation(conversation.id);
+        historyList.appendChild(historyItem);
+    });
+}
+
+// Load conversation history from the server with lazy loading
+async function loadHistory() {
+    console.log('📥 Loading conversation history with lazy loading...');
+    
+    // Check if historyList element exists
+    if (!historyList) {
+        console.error('❌ historyList element not found!');
+        return;
+    }
+    
+    // Reset lazy loading state
+    currentHistoryOffset = 0;
+    hasMoreHistory = true;
+    isLoadingHistory = false;
+    
+    // Remove old scroll listener to prevent duplicates
+    historyList.removeEventListener('scroll', handleHistoryScroll);
+    
+    // Show loading state
+    historyList.innerHTML = '<div class="loading-history">Loading conversations...</div>';
+    
+    try {
+        const response = await fetch(`/api/conversations?limit=${historyChunkSize}&offset=${currentHistoryOffset}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        console.log('📡 History API response status:', response.status);
+        
+        if (response.ok) {
+            const conversations = await response.json();
+            console.log('✅ Loaded', conversations.length, 'conversations');
+            
+            // Clear loading state
+            historyList.innerHTML = '';
+            
+            if (conversations.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-history">
+                        <p>No conversations yet</p>
+                        <p style="font-size: 11px; opacity: 0.7;">Start a new chat to begin your Japanese learning journey!</p>
+                    </div>
+                `;
+            } else {
+                renderHistoryChunk(conversations);
+                currentHistoryOffset = conversations.length;
+                hasMoreHistory = conversations.length === historyChunkSize;
+                
+                // Add scroll listener for lazy loading (only once)
+                if (hasMoreHistory) {
+                    historyList.addEventListener('scroll', handleHistoryScroll);
+                }
+            }
+        } else if (response.status === 503) {
+            // Services still initializing
+            console.warn('⚠️ Services still initializing, will retry...');
+            historyList.innerHTML = `
+                <div class="empty-history">
+                    <p>Loading services...</p>
+                    <p style="font-size: 11px; opacity: 0.7;">Please wait a moment</p>
+                </div>
+            `;
+            // Retry after 2 seconds
+            setTimeout(() => loadHistory(), 2000);
+        } else {
+            throw new Error(`Failed to load conversations: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('❌ Error loading conversation history:', error);
+        historyList.innerHTML = `
+            <div class="empty-history">
+                <p>Unable to load conversation history</p>
+                <p style="font-size: 11px; opacity: 0.7;">Server may be starting up. Click to retry.</p>
+            </div>
+        `;
+        // Add click to retry
+        historyList.querySelector('.empty-history').style.cursor = 'pointer';
+        historyList.querySelector('.empty-history').onclick = () => loadHistory();
+    }
+}
+
+// Render the conversation history in the sidebar (legacy function - use lazy loading instead)
+function renderHistory() {
+    console.log('�️  Legacy renderHistory called - using lazy loading instead');
+    // This function is now deprecated in favor of lazy loading
+    loadHistory();
 }
 
 // Delete a conversation

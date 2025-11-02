@@ -1,0 +1,474 @@
+/* Japanese-Inspired Light Theme - Red & White */
+/* Inspired by the Japanese flag with soft, eye-friendly colors */
+
+body.light-theme {
+    background-color: #fafafa;
+    color: #2d2d2d;
+
+    /* Japanese flag inspired colors */
+    --primary: #c1272d;           /* Deep red (similar to Japanese flag) */
+    --primary-hover: #a02126;     /* Darker red on hover */
+    --primary-light: #fde8e8;     /* Light red background */
+    --secondary: #8b0000;         /* Dark red accent */
+    --accent: #e85d75;            /* Soft coral red */
+    --accent-gradient: linear-gradient(135deg, #e85d75 0%, #c1272d 50%, #d94d52 100%);
+    --primary-gradient: linear-gradient(135deg, #c1272d 0%, #d94d52 50%, #e85d75 100%);
+    --background: #fafafa;        /* Off-white background */
+    --surface: #ffffff;           /* Pure white */
+    --surface-elevated: #f8f8f8;  /* Slightly elevated surface */
+    --surface-hover: #f0f0f0;     /* Hover state surface */
+    --text-primary: #2d2d2d;      /* Dark gray text */
+    --text-secondary: #5a5a5a;    /* Medium gray */
+    --text-muted: #8a8a8a;        /* Light gray */
+    --text-inverse: #ffffff;      /* White text */
+    --border: #e0e0e0;            /* Subtle border */
+    --border-light: #d0d0d0;      /* Lighter border */
+    --success: #10b981;           /* Success green */
+    --success-light: #d1fae5;     /* Light success background */
+    --warning: #f59e0b;           /* Warning orange */
+    --warning-light: #fef3c7;     /* Light warning background */
+    --error: #ef4444;             /* Error red */
+    --error-light: #fee2e2;       /* Light error background */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(193, 39, 45, 0.2);
+    --shadow-glow-accent: 0 0 25px rgba(232, 93, 117, 0.3);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+}
+
+/* Dark Theme Variables (unchanged) */
+body.dark-theme {
+    background-color: #0f172a;
+    color: #f8fafc;
+
+    --primary: #6366f1;
+    --primary-light: #8b5cf6;
+    --secondary: #ec4899;
+    --accent: #f59e0b;
+    --background: #0f172a;
+    --surface: #1e293b;
+    --surface-light: #334155;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --border: #334155;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Light Theme - Sidebar */
+body.light-theme .sidebar {
+    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    border-right: 1px solid #e0e0e0;
+    box-shadow: 2px 0 8px rgba(193, 39, 45, 0.03);
+}
+
+body.light-theme .sidebar-header {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+body.light-theme .history-header {
+    color: #5a5a5a;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Light Theme - Chat Container */
+body.light-theme .chat-container {
+    background-color: #fafafa;
+}
+
+body.light-theme .empty-state {
+    color: #5a5a5a;
+}
+
+body.light-theme .empty-state h3 {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Light Theme - Messages */
+body.light-theme .message.assistant {
+    background: linear-gradient(135deg, #ffffff 0%, #fef5f5 100%);
+    color: #2d2d2d;
+    border: 1px solid #f5d7d8;
+    box-shadow: 0 2px 8px rgba(193, 39, 45, 0.04);
+}
+
+body.light-theme .message.user {
+    background: linear-gradient(135deg, #ffebee 0%, #fce4e4 100%);
+    color: #2d2d2d;
+    border: 1px solid #f8bdc0;
+    box-shadow: 0 2px 8px rgba(193, 39, 45, 0.06);
+}
+
+body.light-theme .message-header {
+    color: #c1272d;
+    font-weight: 600;
+}
+
+/* Light Theme - Input Area (Softer styling) */
+body.light-theme .input-container {
+    background: #ffffff;
+    border: 2px solid #f5f5f5;
+    box-shadow: 0 2px 8px rgba(193, 39, 45, 0.04);
+}
+
+body.light-theme .message-input {
+    background: transparent;
+    color: #2d2d2d;
+}
+
+body.light-theme .message-input::placeholder {
+    color: #8a8a8a;
+}
+
+body.light-theme .message-input:focus {
+    outline: none;
+}
+
+body.light-theme .input-container:focus-within {
+    border-color: #f8bdc0;
+    box-shadow: 0 0 0 3px rgba(193, 39, 45, 0.08);
+}
+
+/* Light Theme - Buttons */
+body.light-theme .send-btn {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+    color: white;
+}
+
+body.light-theme .send-btn:hover {
+    background: linear-gradient(135deg, #a81f24 0%, #c1272d 100%);
+    box-shadow: 0 4px 12px rgba(193, 39, 45, 0.2);
+}
+
+body.light-theme .new-chat-btn,
+body.light-theme .ai-doc-gen-btn {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+    color: white;
+    border: none;
+}
+
+body.light-theme .new-chat-btn:hover,
+body.light-theme .ai-doc-gen-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(193, 39, 45, 0.25);
+    background: linear-gradient(135deg, #a81f24 0%, #c1272d 100%);
+}
+
+body.light-theme .notebook-btn {
+    background: var(--accent-gradient);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body.light-theme .notebook-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(232, 93, 117, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Light Theme - History Items */
+body.light-theme .history-item {
+    background: rgba(193, 39, 45, 0.03);
+    border: 1px solid #f5f5f5;
+    color: #2d2d2d;
+}
+
+body.light-theme .history-item:hover {
+    background: rgba(193, 39, 45, 0.08);
+    border-color: #f8bdc0;
+    transform: translateX(4px);
+}
+
+body.light-theme .history-item.active {
+    background: linear-gradient(135deg, rgba(193, 39, 45, 0.12), rgba(217, 77, 82, 0.12));
+    border-color: #d94d52;
+    color: #c1272d;
+    font-weight: 600;
+}
+
+body.light-theme .history-item .history-delete {
+    color: #8a8a8a;
+}
+
+body.light-theme .history-item .history-delete:hover {
+    color: #c1272d;
+    background: rgba(193, 39, 45, 0.1);
+}
+
+/* Light Theme - Toggle Buttons */
+body.light-theme .internet-toggle,
+body.light-theme .advanced-rag-toggle {
+    background: rgba(193, 39, 45, 0.05);
+    border: 2px solid #f5d7d8;
+    color: #5a5a5a;
+}
+
+body.light-theme .internet-toggle.active {
+    background: linear-gradient(135deg, rgba(193, 39, 45, 0.12), rgba(217, 77, 82, 0.12));
+    border-color: #d94d52;
+    color: #c1272d;
+}
+
+body.light-theme .advanced-rag-toggle.active {
+    background: linear-gradient(135deg, rgba(193, 39, 45, 0.12), rgba(217, 77, 82, 0.12));
+    border-color: #d94d52;
+    color: #c1272d;
+}
+
+body.light-theme .internet-toggle:hover,
+body.light-theme .advanced-rag-toggle:hover {
+    border-color: #f8bdc0;
+    background: rgba(193, 39, 45, 0.08);
+}
+
+/* Light Theme - About Section */
+body.light-theme .about-section {
+    background: rgba(245, 245, 245, 0.8);
+    border-top: 1px solid #e0e0e0;
+}
+
+body.light-theme .about-title {
+    color: #c1272d;
+}
+
+body.light-theme .about-link {
+    color: #d94d52;
+}
+
+body.light-theme .about-link:hover {
+    color: #c1272d;
+    background: rgba(193, 39, 45, 0.08);
+}
+
+body.light-theme .version-badge {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+    color: white;
+}
+
+/* Light Theme - Header */
+body.light-theme .header {
+    background: linear-gradient(135deg, #ffffff 0%, #fff5f5 50%, #ffffff 100%);
+    border-bottom: 2px solid #f5d7d8;
+}
+
+body.light-theme .header h1 {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Light Theme - H2 Header text with gradient */
+body.light-theme .header h2 {
+    background: linear-gradient(135deg, #8a8a8a 0%, #c1272d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Light Theme - Header Buttons */
+body.light-theme .theme-toggle-btn {
+    background: rgba(193, 39, 45, 0.08);
+    border: 1px solid #f5d7d8;
+    color: #c1272d;
+}
+
+body.light-theme .theme-toggle-btn:hover {
+    background: rgba(193, 39, 45, 0.15);
+    border-color: #f8bdc0;
+    transform: translateY(-50%) scale(1.1);
+}
+
+body.light-theme .theme-toggle-btn svg {
+    stroke: #c1272d;
+    fill: #c1272d;
+}
+
+body.light-theme .header-export-btn {
+    background: rgba(193, 39, 45, 0.08);
+    border: 1px solid #f5d7d8;
+    color: #c1272d;
+}
+
+body.light-theme .header-export-btn:hover {
+    background: rgba(193, 39, 45, 0.15);
+    border-color: #f8bdc0;
+}
+
+body.light-theme .header-export-btn svg {
+    stroke: #c1272d;
+}
+
+body.light-theme .sidebar-toggle {
+    background: rgba(193, 39, 45, 0.08);
+    border: 1px solid #f5d7d8;
+    color: #c1272d;
+}
+
+body.light-theme .sidebar-toggle:hover {
+    background: rgba(193, 39, 45, 0.15);
+    border-color: #f8bdc0;
+}
+
+body.light-theme .sidebar-toggle svg {
+    stroke: #c1272d;
+}
+
+/* Light Theme - Export Dropdown */
+body.light-theme .export-dropdown {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 20px rgba(193, 39, 45, 0.12);
+}
+
+body.light-theme .export-dropdown-item {
+    color: #2d2d2d;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+body.light-theme .export-dropdown-item:hover {
+    background: rgba(193, 39, 45, 0.08);
+    color: #c1272d;
+}
+
+body.light-theme .export-dropdown-item svg {
+    fill: #c1272d;
+}
+
+/* Light Theme - Suggestions */
+body.light-theme .suggestions-popup {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 20px rgba(193, 39, 45, 0.08);
+}
+
+body.light-theme .suggestions-popup h4 {
+    color: #c1272d;
+    border-bottom: 1px solid #f5d7d8;
+}
+
+body.light-theme .suggestion-btn {
+    background: rgba(193, 39, 45, 0.05);
+    border: 1px solid #f5d7d8;
+    color: #2d2d2d;
+}
+
+body.light-theme .suggestion-btn:hover {
+    background: linear-gradient(135deg, rgba(193, 39, 45, 0.12), rgba(217, 77, 82, 0.12));
+    border-color: #d94d52;
+    color: #c1272d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(193, 39, 45, 0.12);
+}
+
+/* Light Theme - Loading Indicator */
+body.light-theme .loading-indicator .loading-dot {
+    background: #d94d52;
+}
+
+/* Light Theme - Scrollbar */
+body.light-theme ::-webkit-scrollbar-track {
+    background: #fafafa;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+    background: #f5d7d8;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+    background: #d94d52;
+}
+
+/* Light Theme - Code blocks */
+body.light-theme pre {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+}
+
+body.light-theme code {
+    background: rgba(193, 39, 45, 0.08);
+    color: #c1272d;
+}
+
+/* Light Theme - Links */
+body.light-theme a {
+    color: #d94d52;
+}
+
+body.light-theme a:hover {
+    color: #c1272d;
+}
+
+/* Light Theme - Sidebar Overlay (Mobile) */
+body.light-theme .sidebar-overlay {
+    background: rgba(45, 45, 45, 0.3);
+}
+
+/* Light Theme - Notification */
+body.light-theme .notification {
+    background: #ffffff;
+    color: #2d2d2d;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 20px rgba(193, 39, 45, 0.12);
+}
+
+body.light-theme .notification.error {
+    background: #fff5f5;
+    border-color: #f8bdc0;
+    color: #c1272d;
+}
+
+body.light-theme .notification.info {
+    background: #ffffff;
+    border-color: #e0e0e0;
+    color: #2d2d2d;
+}
+
+/* Light Theme - More transparent chat input area */
+body.light-theme .chat-input-area {
+    background: rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(224, 224, 224, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Light Theme - Enhanced Tables */
+body.light-theme .message-content table {
+    background: #ffffff;
+    border-color: #e0e0e0;
+    box-shadow: 0 4px 16px rgba(193, 39, 45, 0.08);
+}
+
+body.light-theme .message-content table thead {
+    background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+}
+
+body.light-theme .message-content table th,
+body.light-theme .message-content table td {
+    border-bottom-color: #e0e0e0;
+}
+
+body.light-theme .message-content table tbody tr:hover {
+    background: rgba(193, 39, 45, 0.05);
+}
+
+body.light-theme .message-content table tbody tr:nth-child(even) {
+    background: rgba(193, 39, 45, 0.02);
+}
+
+body.light-theme .message-content table tbody tr:nth-child(even):hover {
+    background: rgba(193, 39, 45, 0.05);
+}
+
+body.light-theme .message-content table td {
+    color: #2d2d2d;
+}

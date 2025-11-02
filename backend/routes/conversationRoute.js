@@ -4,7 +4,12 @@ const { ensureServicesInitialized } = require('../middlewear/initialise');
 const {
   listConversations,
   getConversation,
-  deleteConversation
+  deleteConversation,
+  deleteAllConversations,
+  exportConversation,
+  syncTrainingData,
+  getTrainingStats,
+  exportAllTrainingData
 } = require('../controllers/conversationController');
 
 // Apply middleware to all routes
@@ -12,7 +17,14 @@ router.use(ensureServicesInitialized);
 
 // Conversation routes
 router.get('/', listConversations);
+router.delete('/', deleteAllConversations);  // Must be before /:id route
 router.get('/:id', getConversation);
 router.delete('/:id', deleteConversation);
+router.post('/:id/export', exportConversation);
+
+// Training data routes
+router.post('/training/sync', syncTrainingData);
+router.get('/training/stats', getTrainingStats);
+router.get('/training/export', exportAllTrainingData);
 
 module.exports = router;

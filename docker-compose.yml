@@ -26,6 +26,43 @@ services:
       retries: 3
       start_period: 40s
 
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma_data:/chroma/chroma  # Persistență
+      - ./chroma_config:/chroma/config  # Configurații
+    environment:
+      # Authentication
+      CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: "chromadb.auth.token.TokenConfigServerAuthCredentialsProvider"
+      CHROMA_SERVER_AUTH_CREDENTIALS: "${CHROMA_AUTH_TOKEN}"
+      CHROMA_SERVER_AUTH_PROVIDER: "chromadb.auth.token.TokenAuthServerProvider"
+      
+      # Storage
+      CHROMA_SERVER_PERSIST_DIRECTORY: "/chroma/chroma"
+      IS_PERSISTENT: "TRUE"
+      
+      # Performance
+      CHROMA_SEGMENT_CACHE_POLICY: "LRU"
+      CHROMA_SERVER_GRPC_PORT: "8001"
+      
+      # Logging
+      CHROMA_LOG_LEVEL: "INFO"
+      
+      # Telemetry (optional)
+      ANONYMIZED_TELEMETRY: "FALSE"
+    
+    command: ["--host", "0.0.0.0", "--port", "8000", "--log-config-path", "/chroma/config/log_config.yml"]
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    restart: unless-stopped
+
   # Ollama AI Service
   ollama:
     image: ollama/ollama:latest

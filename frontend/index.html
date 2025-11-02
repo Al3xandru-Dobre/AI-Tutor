@@ -3,109 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Japanese AI Tutor</title>
-    <link rel = "stylesheet" href = "style.css"> 
+    <title>Japanese AI Tutor - Welcome</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="light-theme.css">
+    <link rel="stylesheet" href="landing.css">
 </head>
-<body>
-    <div class="app-layout" id="appLayout">
-        <!-- Sidebar overlay for mobile -->
-        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-        
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <button class="new-chat-btn" onclick="startNewChat()">
-                    <span class="plus-icon">+</span> New Chat
-                </button>
-                <button class="ai-doc-gen-btn" onclick="showLLMDocumentModal()" title="Generate custom study materials with AI">
-                    <span>🤖</span> AI Document Generator
-                </button>
-            </div>
-            <div class="history-section">
-                <div class="history-header">Recent Conversations</div>
-                <div class="history-list" id="historyList">
-                    <div class="loading-history">Loading conversations...</div>
+<body class="landing-page">
+    <div class="landing-container">
+        <!-- Theme Toggle -->
+        <button class="landing-theme-toggle" id="landing-theme-toggle" title="Toggle theme">
+            <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3" stroke="white" stroke-width="2"/>
+                <line x1="12" y1="21" x2="12" y2="23" stroke="white" stroke-width="2"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="white" stroke-width="2"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="white" stroke-width="2"/>
+                <line x1="1" y1="12" x2="3" y2="12" stroke="white" stroke-width="2"/>
+                <line x1="21" y1="12" x2="23" y2="12" stroke="white" stroke-width="2"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="white" stroke-width="2"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="white" stroke-width="2"/>
+            </svg>
+            <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
+
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="hero-flag">🇯🇵</div>
+                <h1 class="hero-title">Japanese AI Tutor</h1>
+                <p class="hero-subtitle">あなたの日本語講師</p>
+                <p class="hero-description">
+                    Master the beautiful Japanese language with your personal AI-powered learning companion.
+                    From basic hiragana to advanced kanji, from simple greetings to complex conversations.
+                </p>
+                <div class="hero-buttons">
+                    <a href="login.html" class="btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                            <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
+                        </svg>
+                        Sign In
+                    </a>
+                    <a href="register.html" class="btn-cta">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                        </svg>
+                        Create Account
+                    </a>
+                    <a href="chat.html" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        Try as Guest
+                    </a>
                 </div>
             </div>
-            <div class="about-section">
-                <div class="about-title">About</div>
-                <div class="about-content">
-                    <p><strong>Japanese AI Tutor</strong> <span class="version-badge">v1.5</span></p>
-                    <p>Your personal AI-powered Japanese learning companion!</p>
-                    <div class="about-links">
-                        <a href="#" class="about-link" onclick="showHelp()">Help</a>
-                        <a href="#" class="about-link" onclick="showSettings()">Settings</a>
-                        <a href="#" class="about-link" onclick="showFeedback()">Feedback</a>
-                    </div>
+
+            <!-- Animated Background Elements -->
+            <div class="hero-background">
+                <div class="floating-character" style="--delay: 0s; --duration: 20s;">あ</div>
+                <div class="floating-character" style="--delay: 2s; --duration: 25s;">か</div>
+                <div class="floating-character" style="--delay: 4s; --duration: 22s;">さ</div>
+                <div class="floating-character" style="--delay: 1s; --duration: 24s;">た</div>
+                <div class="floating-character" style="--delay: 3s; --duration: 21s;">な</div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features-section" id="features">
+            <h2 class="section-title">Why Choose Our AI Tutor?</h2>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered Learning</h3>
+                    <p>Advanced AI technology adapts to your learning style and pace, providing personalized guidance every step of the way.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📚</div>
+                    <h3>Comprehensive Content</h3>
+                    <p>From hiragana and katakana to kanji, grammar, and conversation practice - everything you need in one place.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Internet-Enhanced</h3>
+                    <p>Access real-time information and the latest cultural insights with integrated internet search capabilities.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>Interactive Conversations</h3>
+                    <p>Practice real-world Japanese conversations and get instant feedback on your language skills.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>Custom Study Materials</h3>
+                    <p>Generate personalized study materials, flashcards, and practice exercises tailored to your needs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Progress Tracking</h3>
+                    <p>Track your learning journey with conversation history and export your progress at any time.</p>
                 </div>
             </div>
         </div>
 
-        <div class="container">
-            <div class="header">
-                <div class="header-content">
-                    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12h18M3 6h18M3 18h18"/>
-                        </svg>
-                    </button>
-                    <span class="flag">🇯🇵</span>
-                    <h1>Japanese AI Tutor</h1>
-                    <button class="header-export-btn" id="headerExportBtn" onclick="exportCurrentConversation()" title="Export this conversation" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>Export</span>
-                    </button>
+        <!-- Authentication Section -->
+        <div class="quick-start-section">
+            <h2 class="section-title">Join Our Learning Community</h2>
+            <div class="quick-start-grid">
+                <div class="quick-start-card">
+                    <div class="quick-start-number">👤</div>
+                    <h3>Sign In</h3>
+                    <p>Access your saved progress and continue where you left off</p>
+                    <a href="login.html" class="btn-secondary" style="margin-top: 16px; width: 100%; justify-content: center;">
+                        Sign In
+                    </a>
                 </div>
-                    <h2>あなたの日本語講師</h2>
-            </div>
-            
-            <div class="chat-container" id="chatContainer">
-                <div class="empty-state">
-                    <h3>Welcome to your Japanese learning journey!</h3>
-                    <p>Start exploring the beautiful world of Japanese language and culture. Ask me anything or choose a suggestion below.</p>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">✨</div>
+                    <h3>Create Account</h3>
+                    <p>Track your progress, save conversations, and personalize your learning</p>
+                    <a href="register.html" class="btn-primary" style="margin-top: 16px; width: 100%; justify-content: center;">
+                        Register Free
+                    </a>
                 </div>
-            </div>
-
-            <div class="chat-input-area">
-                <div class="suggestions-popup" id="suggestionsPopup">
-                    <h4>New to Japanese? Here are some quick starters:</h4>
-                    <div class="suggestion-buttons">
-                        <button class="suggestion-btn" onclick="quickSend('How do I introduce myself in Japanese?')">Self-introduction</button>
-                        <button class="suggestion-btn" onclick="quickSend('Teach me basic greetings')">Basic Greetings</button>
-                        <button class="suggestion-btn" onclick="quickSend('Explain what are particles and what are the main particles in Japanese. Make a list and give proper examples.')">Get started on Grammar</button>
-                        <button class="suggestion-btn" onclick="quickSend('Make a brief introduction into Japanese counting systems')">Numbers & Counting</button>
-                        <button class="suggestion-btn" onclick="quickSend('Tell me some tradiotional Japanese dishes and what they are about.')">Food</button>
-                        <button class="suggestion-btn" onclick="quickSend('How do I ask for directions?')">Directions</button>
-                    </div>
-                </div>
-
-                <div class="input-container">
-                    <button class="internet-toggle active" id="internetToggle" onclick="toggleInternetSearch()" title="Internet search enabled">
-                        <svg id="icon-globe" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: block;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L8 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                        <svg id="icon-globe-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><path d="M22.12 21.71L2.29 1.88C1.9 1.49 1.27 1.49 1.27 1.88s-0.39 1.02 0 1.41l3.24 3.24C3.42 7.87 3 9.87 3 12c0 4.97 4.03 9 9 9c2.13 0 4.13-0.42 5.47-1.12l3.24 3.24c0.39 0.39 1.02 0.39 1.41 0S22.51 22.1 22.12 21.71zM12 19c-3.87 0-7-3.13-7-7c0-1.28 0.35-2.48 0.95-3.52l9.57 9.57C14.48 18.65 13.28 19 12 19zM19 12c0 1.19-0.3 2.3-0.82 3.28l1.45 1.45C20.41 15.55 21 13.85 21 12c0-4.97-4.03-9-9-9c-1.85 0-3.55 0.59-4.73 1.37l1.45 1.45C9.7 5.3 10.81 5 12 5C15.87 5 19 8.13 19 12z"/></svg>
-                    </button>
-                    <button class="advanced-rag-toggle" id="advancedRagToggle" onclick="toggleAdvancedRAG()" title="Advanced RAG disabled - Click to enable hybrid search + query expansion">
-                        <span style="font-size: 18px;">🔬</span>
-                    </button>
-                    <textarea id="messageInput" class="message-input" placeholder="Ask me anything about Japanese..." rows="1"></textarea>
-                    <button onclick="sendMessage()" class="send-btn" id="sendBtn">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                    </button>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">🚀</div>
+                    <h3>Try as Guest</h3>
+                    <p>Start learning immediately without creating an account</p>
+                    <a href="chat.html" class="btn-secondary" style="margin-top: 16px; width: 100%; justify-content: center;">
+                        Start Now
+                    </a>
                 </div>
             </div>
         </div>
+
+        <!-- Quick Start Section -->
+        <div class="quick-start-section">
+            <h2 class="section-title">Ready to Begin?</h2>
+            <div class="quick-start-grid">
+                <div class="quick-start-card">
+                    <div class="quick-start-number">1</div>
+                    <h3>Choose Your Topic</h3>
+                    <p>Start with basics like greetings or dive into advanced grammar</p>
+                </div>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">2</div>
+                    <h3>Ask Questions</h3>
+                    <p>Get instant answers and explanations tailored to your level</p>
+                </div>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">3</div>
+                    <h3>Practice & Learn</h3>
+                    <p>Engage in interactive conversations and exercises</p>
+                </div>
+            </div>
+            <div class="cta-container">
+                <a href="chat.html" class="btn-cta">
+                    Begin Your Journey
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                        <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <div class="footer-content">
+                <p><strong>Japanese AI Tutor</strong> <span class="version-badge">v1.5</span></p>
+                <p class="footer-description">Your personal AI-powered Japanese learning companion</p>
+                <div class="footer-links">
+                    <a href="#" onclick="alert('Help documentation coming soon!')">Help</a>
+                    <a href="#" onclick="alert('Settings available in the main app')">Settings</a>
+                    <a href="#" onclick="alert('Feedback form coming soon!')">Feedback</a>
+                </div>
+            </div>
+        </footer>
     </div>
 
-    <!-- JavaScript Modules -->
-    <script src="js/app-state.js"></script>
-    <script src="js/ui-utils.js"></script>
-    <script src="js/conversation-history.js"></script>
-    <script src="js/messaging.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/document-generation.js"></script>
-    <script src="js/app-init.js"></script>
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('landing-theme-toggle');
+        const body = document.body;
+        const sunIcon = document.querySelector('.theme-icon-sun');
+        const moonIcon = document.querySelector('.theme-icon-moon');
+
+        // Check for saved theme preference or default to 'dark'
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        body.classList.add(currentTheme + '-theme');
+        updateThemeIcon();
+
+        themeToggle.addEventListener('click', () => {
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+        });
+
+        function updateThemeIcon() {
+            if (body.classList.contains('dark-theme')) {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            } else {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            }
+        }
+
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>
