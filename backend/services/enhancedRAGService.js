@@ -7,11 +7,14 @@ const crypto = require('crypto');
 const pdf = require('pdf-parse');
 const { pipeline, env } = require('@xenova/transformers');
 
-// Note: Global transformer configuration is set in backend/config/transformers.config.js
-// Configure Hugging Face authentication if provided
+// Configure Hugging Face authentication from environment
 if (process.env.HUGGING_FACE_HUB_TOKEN) {
   env.accessToken = process.env.HUGGING_FACE_HUB_TOKEN;
 }
+
+// Use local model cache but allow remote downloads with token
+env.allowLocalModels = true;
+env.allowRemoteModels = true; // Allow remote downloads with HuggingFace token
 
 class EnhancedRAGService {
   constructor(options = {}) {
@@ -31,6 +34,8 @@ class EnhancedRAGService {
     this.maxChunkSize = options.maxChunkSize || 800;
     this.chunkOverlap = options.chunkOverlap || 100;
     
+
+
     // Legacy support (for gradual migration)
     this.documents = new Map();
     this.isInitialized = false;
@@ -61,7 +66,7 @@ class EnhancedRAGService {
       if (this.useChromaDB) {
         //only for development purposes, erases data from ChromaDB
         await this.deleteAndRecreateCollection();
-        
+
         await this.setupCustomEmbedding();
         await this.initializeChromaDB();
       }

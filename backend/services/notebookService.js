@@ -1,59 +1,103 @@
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+const { encryptNotebook, decryptNotebook } = require('../utils/encryption');
 
 class NotebookService {
   constructor() {
     this.notebooks = new Map();
     this.notebooksPath = path.join(__dirname, '../data/notebooks');
-    this.notebooksFilePath = path.join(this.notebooksPath, 'notebooks.json');
     this.isInitialized = false;
+  }
+
+  /**
+   * Get user-specific notebook file path
+   * @param {string} userId - User ID
+   * @returns {string} File path
+   */
+  getUserFilePath(userId) {
+    return path.join(this.notebooksPath, `notebook-${userId}.json`);
   }
 
   async initialize() {
     try {
       await fs.mkdir(this.notebooksPath, { recursive: true });
-      await this.loadNotebooks();
       this.isInitialized = true;
-      console.log('Notebook Service initialized.');
-      console.log(`  Loaded ${this.notebooks.size} notebook entries.`);
+      console.log('Notebook Service initialized with encryption support.');
     } catch (error) {
       console.error('Notebook Service initialization error:', error);
       this.isInitialized = false;
     }
   }
 
-  async loadNotebooks() {
+  /**
+   * Load user's encrypted notebooks
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} User's notebooks
+   */
+  async loadUserNotebooks(userId) {
     try {
-      const data = await fs.readFile(this.notebooksFilePath, 'utf-8');
-      const parsedData = JSON.parse(data);
-      this.notebooks = new Map(Object.entries(parsedData));
-      console.log(`Loaded ${this.notebooks.size} notebook entries.`);
+      const filePath = this.getUserFilePath(userId);
+      const data = await fs.readFile(filePath, 'utf-8');
+      const encryptedPackage = JSON.parse(data);
+
+      // Decrypt notebooks
+      const decryptedData = decryptNotebook(encryptedPackage, userId);
+
+      return decryptedData || {};
     } catch (error) {
       if (error.code === 'ENOENT') {
-        console.log('No notebooks file found. Starting fresh.');
-        this.notebooks = new Map();
-        await this.saveNotebooks();
+        console.log(`No notebook file found for user ${userId}. Starting fresh.`);
+        return {};
       } else {
-        console.error('Error loading notebooks:', error);
+        console.error(`Error loading notebooks for user ${userId}:`, error);
+        return {};
       }
     }
   }
 
-  async saveNotebooks() {
+  /**
+   * Save user's encrypted notebooks
+   * @param {string} userId - User ID
+   * @param {Object} notebooks - Notebooks object
+   * @returns {Promise<boolean>} Success status
+   */
+  async saveUserNotebooks(userId, notebooks) {
     try {
-      const dataToSave = JSON.stringify(Object.fromEntries(this.notebooks), null, 2);
-      await fs.writeFile(this.notebooksFilePath, dataToSave, 'utf-8');
+      const filePath = this.getUserFilePath(userId);
+
+      // Encrypt notebooks
+      const encryptedPackage = encryptNotebook(notebooks, userId);
+
+      // Save to file
+      const dataToSave = JSON.stringify(encryptedPackage, null, 2);
+      await fs.writeFile(filePath, dataToSave, 'utf-8');
+
+      return true;
     } catch (error) {
-      console.error('Error saving notebooks:', error);
+      console.error(`Error saving notebooks for user ${userId}:`, error);
+      return false;
     }
   }
 
-  async createNotebook(entryData) {
+  /**
+   * Create a new notebook for user
+   * @param {string} userId - User ID
+   * @param {Object} entryData - Notebook data
+   * @returns {Promise<Object>} Created notebook
+   */
+  async createNotebook(userId, entryData) {
     if (!this.isInitialized) await this.initialize();
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    // Load user's existing notebooks
+    const userNotebooks = await this.loadUserNotebooks(userId);
 
     const notebook = {
       id: crypto.randomBytes(8).toString('hex'),
+      userId: userId, // Add userId for ownership verification
       title: entryData.title || 'Untitled Entry',
       content: entryData.content || '',
       type: entryData.type || 'note',
@@ -69,61 +113,144 @@ class NotebookService {
       metadata: entryData.metadata || {}
     };
 
-    this.notebooks.set(notebook.id, notebook);
-    await this.saveNotebooks();
+    userNotebooks[notebook.id] = notebook;
+
+    // Save encrypted notebooks
+    await this.saveUserNotebooks(userId, userNotebooks);
+
     return notebook;
   }
 
-  async getNotebook(id) {
+  /**
+   * Get a specific notebook for user (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} id - Notebook ID
+   * @returns {Promise<Object|null>} Notebook object or null
+   */
+  async getNotebook(userId, id) {
     if (!this.isInitialized) await this.initialize();
-    return this.notebooks.get(id);
+    if (!userId || !id) {
+      throw new Error('User ID and Notebook ID are required');
+    }
+
+    const userNotebooks = await this.loadUserNotebooks(userId);
+    const notebook = userNotebooks[id];
+
+    // Ownership check
+    if (!notebook || notebook.userId !== userId) {
+      console.warn(`User ${userId} attempted to access notebook ${id} (owned by ${notebook?.userId})`);
+      return null;
+    }
+
+    return notebook;
   }
 
-  async getAllNotebooks() {
+  /**
+   * Get all notebooks for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>} Array of notebooks
+   */
+  async getAllNotebooks(userId) {
     if (!this.isInitialized) await this.initialize();
-    return Array.from(this.notebooks.values());
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userNotebooks = await this.loadUserNotebooks(userId);
+
+    // Convert to array and sort by updatedAt
+    return Object.values(userNotebooks)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 
-  async updateNotebook(id, updates) {
+  /**
+   * Update a notebook (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} id - Notebook ID
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<Object>} Updated notebook
+   */
+  async updateNotebook(userId, id, updates) {
     if (!this.isInitialized) await this.initialize();
+    if (!userId || !id) {
+      throw new Error('User ID and Notebook ID are required');
+    }
 
-    const existing = this.notebooks.get(id);
-    if (!existing) {
-      throw new Error('Notebook entry not found');
+    const userNotebooks = await this.loadUserNotebooks(userId);
+    const existing = userNotebooks[id];
+
+    // Ownership check
+    if (!existing || existing.userId !== userId) {
+      throw new Error('Notebook not found or access denied');
     }
 
     const updated = {
       ...existing,
       ...updates,
       id: existing.id, // Preserve ID
+      userId: existing.userId, // Preserve userId
       createdAt: existing.createdAt, // Preserve creation date
       updatedAt: new Date().toISOString()
     };
 
-    this.notebooks.set(id, updated);
-    await this.saveNotebooks();
+    userNotebooks[id] = updated;
+
+    // Save encrypted notebooks
+    await this.saveUserNotebooks(userId, userNotebooks);
+
     return updated;
   }
 
-  async deleteNotebook(id) {
+  /**
+   * Delete a notebook (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} id - Notebook ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async deleteNotebook(userId, id) {
     if (!this.isInitialized) await this.initialize();
-
-    const deleted = this.notebooks.delete(id);
-    if (deleted) {
-      await this.saveNotebooks();
+    if (!userId || !id) {
+      throw new Error('User ID and Notebook ID are required');
     }
-    return deleted;
+
+    const userNotebooks = await this.loadUserNotebooks(userId);
+    const notebook = userNotebooks[id];
+
+    // Ownership check
+    if (!notebook || notebook.userId !== userId) {
+      console.warn(`User ${userId} attempted to delete notebook ${id} (owned by ${notebook?.userId})`);
+      return false;
+    }
+
+    delete userNotebooks[id];
+
+    // Save encrypted notebooks
+    await this.saveUserNotebooks(userId, userNotebooks);
+
+    console.log(`✅ Notebook ${id} deleted for user ${userId}`);
+    return true;
   }
 
-  async searchNotebooks(query, filters = {}) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Search notebooks for a user
+   * @param {string} userId - User ID
+   * @param {string} query - Search query
+   * @param {Object} filters - Filter options
+   * @returns {Promise<Array>} Filtered notebooks
+   */
+  async searchNotebooks(userId, query, filters = {}) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userNotebooks = await this.getAllNotebooks(userId);
 
     const searchTerm = (query || '').toLowerCase();
     const { type, category, tags, difficulty } = filters;
 
-    const results = Array.from(this.notebooks.values()).filter(notebook => {
+    const results = userNotebooks.filter(notebook => {
       // Text search
-      const matchesSearch = !searchTerm || 
+      const matchesSearch = !searchTerm ||
         notebook.title.toLowerCase().includes(searchTerm) ||
         notebook.content.toLowerCase().includes(searchTerm) ||
         notebook.category.toLowerCase().includes(searchTerm) ||
@@ -139,7 +266,7 @@ class NotebookService {
       const matchesDifficulty = !difficulty || difficulty === 'all' || notebook.difficulty === difficulty;
 
       // Tags filter
-      const matchesTags = !tags || tags.length === 0 || 
+      const matchesTags = !tags || tags.length === 0 ||
         (notebook.tags && tags.some(tag => notebook.tags.includes(tag)));
 
       return matchesSearch && matchesType && matchesCategory && matchesDifficulty && matchesTags;
@@ -148,22 +275,51 @@ class NotebookService {
     return results;
   }
 
-  async getNotebooksByType(type) {
-    if (!this.isInitialized) await this.initialize();
-    return Array.from(this.notebooks.values()).filter(notebook => notebook.type === type);
+  /**
+   * Get notebooks by type for a user
+   * @param {string} userId - User ID
+   * @param {string} type - Notebook type
+   * @returns {Promise<Array>} Filtered notebooks
+   */
+  async getNotebooksByType(userId, type) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userNotebooks = await this.getAllNotebooks(userId);
+    return userNotebooks.filter(notebook => notebook.type === type);
   }
 
-  async getNotebooksByCategory(category) {
-    if (!this.isInitialized) await this.initialize();
-    return Array.from(this.notebooks.values()).filter(notebook => notebook.category === category);
+  /**
+   * Get notebooks by category for a user
+   * @param {string} userId - User ID
+   * @param {string} category - Notebook category
+   * @returns {Promise<Array>} Filtered notebooks
+   */
+  async getNotebooksByCategory(userId, category) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userNotebooks = await this.getAllNotebooks(userId);
+    return userNotebooks.filter(notebook => notebook.category === category);
   }
 
-  async linkVocabulary(notebookId, vocabIds) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Link vocabulary to notebook (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} notebookId - Notebook ID
+   * @param {string|Array} vocabIds - Vocabulary IDs to link
+   * @returns {Promise<Object>} Updated notebook
+   */
+  async linkVocabulary(userId, notebookId, vocabIds) {
+    if (!userId || !notebookId) {
+      throw new Error('User ID and Notebook ID are required');
+    }
 
-    const existing = this.notebooks.get(notebookId);
+    const existing = await this.getNotebook(userId, notebookId);
     if (!existing) {
-      throw new Error('Notebook entry not found');
+      throw new Error('Notebook not found or access denied');
     }
 
     // Merge new vocabulary IDs with existing ones, avoiding duplicates
@@ -171,86 +327,101 @@ class NotebookService {
     const newVocabIds = Array.isArray(vocabIds) ? vocabIds : [vocabIds];
     const mergedVocabIds = [...new Set([...existingVocabIds, ...newVocabIds])];
 
-    const updated = {
-      ...existing,
-      vocabularyIds: mergedVocabIds,
-      updatedAt: new Date().toISOString()
-    };
-
-    this.notebooks.set(notebookId, updated);
-    await this.saveNotebooks();
-    return updated;
+    return await this.updateNotebook(userId, notebookId, {
+      vocabularyIds: mergedVocabIds
+    });
   }
 
-  async unlinkVocabulary(notebookId, vocabIds) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Unlink vocabulary from notebook (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} notebookId - Notebook ID
+   * @param {string|Array} vocabIds - Vocabulary IDs to unlink
+   * @returns {Promise<Object>} Updated notebook
+   */
+  async unlinkVocabulary(userId, notebookId, vocabIds) {
+    if (!userId || !notebookId) {
+      throw new Error('User ID and Notebook ID are required');
+    }
 
-    const existing = this.notebooks.get(notebookId);
+    const existing = await this.getNotebook(userId, notebookId);
     if (!existing) {
-      throw new Error('Notebook entry not found');
+      throw new Error('Notebook not found or access denied');
     }
 
     const existingVocabIds = existing.vocabularyIds || [];
     const idsToRemove = Array.isArray(vocabIds) ? vocabIds : [vocabIds];
     const filteredVocabIds = existingVocabIds.filter(id => !idsToRemove.includes(id));
 
-    const updated = {
-      ...existing,
-      vocabularyIds: filteredVocabIds,
-      updatedAt: new Date().toISOString()
-    };
-
-    this.notebooks.set(notebookId, updated);
-    await this.saveNotebooks();
-    return updated;
+    return await this.updateNotebook(userId, notebookId, {
+      vocabularyIds: filteredVocabIds
+    });
   }
 
-  async getLinkedVocabulary(notebookId) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Get linked vocabulary from notebook (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} notebookId - Notebook ID
+   * @returns {Promise<Array>} Vocabulary IDs
+   */
+  async getLinkedVocabulary(userId, notebookId) {
+    if (!userId || !notebookId) {
+      throw new Error('User ID and Notebook ID are required');
+    }
 
-    const notebook = this.notebooks.get(notebookId);
+    const notebook = await this.getNotebook(userId, notebookId);
     if (!notebook) {
-      throw new Error('Notebook entry not found');
+      throw new Error('Notebook not found or access denied');
     }
 
     return notebook.vocabularyIds || [];
   }
 
-  async updatePractice(notebookId, score) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Update practice score (with ownership check)
+   * @param {string} userId - User ID
+   * @param {string} notebookId - Notebook ID
+   * @param {number} score - Practice score (1-5)
+   * @returns {Promise<Object>} Updated notebook
+   */
+  async updatePractice(userId, notebookId, score) {
+    if (!userId || !notebookId) {
+      throw new Error('User ID and Notebook ID are required');
+    }
 
-    const existing = this.notebooks.get(notebookId);
+    const existing = await this.getNotebook(userId, notebookId);
     if (!existing) {
-      throw new Error('Notebook entry not found');
+      throw new Error('Notebook not found or access denied');
     }
 
     // Update mastery based on practice score (1-5)
     let newMasteryLevel = existing.masteryLevel;
     const newPracticeCount = existing.practiceCount + 1;
 
-    if (score >= 3) { // Good practice
+    if (score >= 3) {
       newMasteryLevel = Math.min(5, newMasteryLevel + 1);
-    } else { // Poor practice
+    } else {
       newMasteryLevel = Math.max(0, newMasteryLevel - 1);
     }
 
-    const updated = {
-      ...existing,
+    return await this.updateNotebook(userId, notebookId, {
       masteryLevel: newMasteryLevel,
       practiceCount: newPracticeCount,
-      lastPracticed: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    this.notebooks.set(notebookId, updated);
-    await this.saveNotebooks();
-    return updated;
+      lastPracticed: new Date().toISOString()
+    });
   }
 
-  async getNotebookStats() {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Get notebook statistics for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Notebook statistics
+   */
+  async getNotebookStats(userId) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-    const all = Array.from(this.notebooks.values());
+    const all = await this.getAllNotebooks(userId);
     const stats = {
       total: all.length,
       byType: {},
@@ -265,52 +436,57 @@ class NotebookService {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     all.forEach(notebook => {
-      // By type
       stats.byType[notebook.type] = (stats.byType[notebook.type] || 0) + 1;
-      
-      // By category
       stats.byCategory[notebook.category] = (stats.byCategory[notebook.category] || 0) + 1;
-      
-      // By difficulty
       stats.byDifficulty[notebook.difficulty] = (stats.byDifficulty[notebook.difficulty] || 0) + 1;
-      
-      // Mastery distribution
       stats.masteryDistribution[notebook.masteryLevel] = (stats.masteryDistribution[notebook.masteryLevel] || 0) + 1;
-      
-      // Average mastery
       stats.averageMastery += notebook.masteryLevel;
-      
-      // Total practices
       stats.totalPractices += notebook.practiceCount;
-      
-      // Recently active (updated in last week)
+
       const updatedDate = new Date(notebook.updatedAt);
       if (updatedDate > oneWeekAgo) {
         stats.recentlyActive++;
       }
     });
 
-    // Finalize average mastery
     stats.averageMastery = all.length > 0 ? Math.round(stats.averageMastery / all.length) : 0;
 
     return stats;
   }
 
-  async getRecentNotebooks(days = 7) {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Get recent notebooks for a user
+   * @param {string} userId - User ID
+   * @param {number} days - Number of days
+   * @returns {Promise<Array>} Recent notebooks
+   */
+  async getRecentNotebooks(userId, days = 7) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    
-    return Array.from(this.notebooks.values())
+
+    const all = await this.getAllNotebooks(userId);
+
+    return all
       .filter(notebook => new Date(notebook.updatedAt) > cutoffDate)
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 
-  async exportNotebooks(format = 'json') {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Export user's notebooks
+   * @param {string} userId - User ID
+   * @param {string} format - Export format (json, csv)
+   * @returns {Promise<Object>} Export result
+   */
+  async exportNotebooks(userId, format = 'json') {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-    const all = Array.from(this.notebooks.values());
-    
+    const all = await this.getAllNotebooks(userId);
+
     if (format === 'json') {
       return {
         exportDate: new Date().toISOString(),
@@ -320,7 +496,7 @@ class NotebookService {
     } else if (format === 'csv') {
       const headers = ['id', 'title', 'type', 'category', 'difficulty', 'createdAt', 'updatedAt', 'masteryLevel', 'practiceCount'];
       const csvRows = [headers.join(',')];
-      
+
       all.forEach(notebook => {
         const row = headers.map(header => {
           const value = notebook[header] || '';
@@ -328,18 +504,27 @@ class NotebookService {
         });
         csvRows.push(row.join(','));
       });
-      
+
       return csvRows.join('\n');
     }
-    
+
     throw new Error(`Unsupported export format: ${format}`);
   }
 
-  async importNotebooks(data, format = 'json') {
-    if (!this.isInitialized) await this.initialize();
+  /**
+   * Import notebooks for a user
+   * @param {string} userId - User ID
+   * @param {Object|Array} data - Data to import
+   * @param {string} format - Import format (json)
+   * @returns {Promise<Object>} Import result
+   */
+  async importNotebooks(userId, data, format = 'json') {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
     let notebooksToAdd = [];
-    
+
     if (format === 'json') {
       if (Array.isArray(data)) {
         notebooksToAdd = data;
@@ -352,13 +537,15 @@ class NotebookService {
       throw new Error(`Unsupported import format: ${format}`);
     }
 
+    // Load user's existing notebooks
+    const userNotebooks = await this.loadUserNotebooks(userId);
+
     let addedCount = 0;
     let skippedCount = 0;
 
     for (const notebookData of notebooksToAdd) {
       try {
-        // Check if notebook already exists (by title + type)
-        const existing = Array.from(this.notebooks.values()).find(
+        const existing = Object.values(userNotebooks).find(
           n => n.title === notebookData.title && n.type === notebookData.type
         );
 
@@ -367,9 +554,9 @@ class NotebookService {
           continue;
         }
 
-        // Add new notebook with generated ID
         const notebook = {
           id: crypto.randomBytes(8).toString('hex'),
+          userId: userId,
           title: notebookData.title || 'Untitled Entry',
           content: notebookData.content || '',
           type: notebookData.type || 'note',
@@ -385,7 +572,7 @@ class NotebookService {
           metadata: notebookData.metadata || {}
         };
 
-        this.notebooks.set(notebook.id, notebook);
+        userNotebooks[notebook.id] = notebook;
         addedCount++;
       } catch (error) {
         console.error('Error importing notebook entry:', error);
@@ -393,8 +580,8 @@ class NotebookService {
       }
     }
 
-    await this.saveNotebooks();
-    
+    await this.saveUserNotebooks(userId, userNotebooks);
+
     return {
       added: addedCount,
       skipped: skippedCount,
@@ -402,31 +589,104 @@ class NotebookService {
     };
   }
 
-  async createExercise(exerciseData) {
-    // Helper method to create exercise-type notebook entries
-    return this.createNotebook({
+  /**
+   * Create exercise-type notebook entry
+   * @param {string} userId - User ID
+   * @param {Object} exerciseData - Exercise data
+   * @returns {Promise<Object>} Created notebook
+   */
+  async createExercise(userId, exerciseData) {
+    return this.createNotebook(userId, {
       ...exerciseData,
       type: 'exercise',
       category: exerciseData.category || 'practice'
     });
   }
 
-  async createGuide(guideData) {
-    // Helper method to create guide-type notebook entries
-    return this.createNotebook({
+  /**
+   * Create guide-type notebook entry
+   * @param {string} userId - User ID
+   * @param {Object} guideData - Guide data
+   * @returns {Promise<Object>} Created notebook
+   */
+  async createGuide(userId, guideData) {
+    return this.createNotebook(userId, {
       ...guideData,
       type: 'guide',
       category: guideData.category || 'study'
     });
   }
 
-  async getExercises() {
-    return this.getNotebooksByType('exercise');
+  /**
+   * Get exercises for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>} Exercise notebooks
+   */
+  async getExercises(userId) {
+    return this.getNotebooksByType(userId, 'exercise');
   }
 
-  async getGuides() {
-    return this.getNotebooksByType('guide');
+  /**
+   * Get guides for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>} Guide notebooks
+   */
+  async getGuides(userId) {
+    return this.getNotebooksByType(userId, 'guide');
+  }
+
+  /**
+   * Delete all notebooks for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Deletion result
+   */
+  async deleteAllUserNotebooks(userId) {
+    if (!this.isInitialized) await this.initialize();
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userNotebooks = await this.getAllNotebooks(userId);
+    const count = userNotebooks.length;
+
+    const filePath = this.getUserFilePath(userId);
+    try {
+      await fs.unlink(filePath);
+      console.log(`✅ Deleted all ${count} notebooks for user ${userId}`);
+
+      return {
+        success: true,
+        message: `Successfully deleted ${count} notebook(s)`,
+        count
+      };
+    } catch (error) {
+      console.error('Error deleting user notebooks:', error);
+      return {
+        success: false,
+        message: 'Failed to delete notebooks'
+      };
+    }
+  }
+
+  /**
+   * Get user statistics
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} User statistics
+   */
+  async getUserStats(userId) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const notebooks = await this.getAllNotebooks(userId);
+
+    return {
+      userId,
+      notebookCount: notebooks.length,
+      total: notebooks.length
+    };
   }
 }
 
+// Singleton instance
 module.exports = NotebookService;

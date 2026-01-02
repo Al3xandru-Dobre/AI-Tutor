@@ -10,9 +10,13 @@ const orchestrationRoutes = require('./orchestrationRoute');
 const ragRoutes = require('./ragRoute');
 const modelProviderRoutes = require('./modelProviderRoute');
 const notebookRoutes = require('./notebookRoute');
+const authRoutes = require('./authRoute');
+const userRoutes = require('./userRoute');
 
 // Mount individual route modules (no /api prefix - already added in server.js)
 router.use('/', healthRoutes);
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/', chatRoutes);
 router.use('/conversations', conversationRoutes);
 router.use('/documents', documentRoutes);

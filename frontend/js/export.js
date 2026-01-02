@@ -40,7 +40,7 @@ function showExportModal(conversationId) {
                 <div>
                     <strong>Training Data: Enabled</strong>
                     <p>This conversation will be saved for training improvements.</p>
-                    <a href="#" onclick="event.preventDefault(); showSettings();" class="settings-link">Change in Settings</a>
+                    <a href="settings.html" class="settings-link">Change in Settings</a>
                 </div>
             </div>
         `;
@@ -51,7 +51,7 @@ function showExportModal(conversationId) {
                 <div>
                     <strong>Training Data: Disabled</strong>
                     <p>This conversation will not be used for training.</p>
-                    <a href="#" onclick="event.preventDefault(); showSettings();" class="settings-link">Enable in Settings</a>
+                    <a href="settings.html" class="settings-link">Enable in Settings</a>
                 </div>
             </div>
         `;

@@ -6,13 +6,13 @@ const EnhancedRAGService = require('../services/enhancedRAGService');
 const IntegratedRAGService = require('../services/IntegratedRAGService');
 const InternetAugmentationService = require('../services/InternetAugumentationService');
 const TutorOrchestratorService = require('../services/TutoreOrchestratorService');
-const ConversationService = require('../services/conversationService');
+const ConversationService = require('../services/ConversationService');
 const PrivacyHistoryRAGService = require('../services/Privacy-Aware HistoryRAGService');
 const DocumentGenerationService = require('../services/DocumentGenerationService');
 const ModelProviderService = require('../services/ModelProviderService');
 const VocabularyService = require('../services/vocabService');
 const NotebookService = require('../services/notebookService');
-
+const AuthService = require('../services/AuthService');
 // Environment variables
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const SEARCH_ENGINE_ID = process.env.GOOGLE_SEARCH_ENGINE_ID;
@@ -47,8 +47,10 @@ async function initializeAllServices() {
     const modelProvider = new ModelProviderService();
     const vocabulary = new VocabularyService();
     const notebook = new NotebookService();
-
-    // Enhanced RAG Service with ChromaDB (must be before orchestrator)
+    // Note: notebookService is a singleton, already initialized
+    const authServiceInstance = new AuthService();
+    // Document Generation Service
+    const documentGenerator = new DocumentGenerationService(ollama, modelProvider);    // Enhanced RAG Service with ChromaDB (must be before orchestrator)
     const rag = new EnhancedRAGService({
       chromaPath: process.env.CHROMA_DB_URL || 'http://localhost:8000',
       collectionName: process.env.CHROMA_COLLECTION_NAME || 'japanese_tutor_knowledge',

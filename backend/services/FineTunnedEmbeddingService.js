@@ -395,15 +395,6 @@ class FineTunedEmbeddingService {
     // 4. Evaluate on validation set
     // 5. Save fine-tuned model
     
-    console.log('\n  📝 Training configuration:');
-    console.log(`     Base model: ${this.baseModel}`);
-    console.log(`     Training pairs: ${trainingData.length}`);
-    console.log(`     Embedding dimension: ${this.embeddingDimension}`);
-    console.log('     Loss function: Contrastive Loss / Triplet Loss');
-    console.log('     Optimizer: AdamW');
-    console.log('     Learning rate: 2e-5');
-    console.log('     Batch size: 16');
-    console.log('     Epochs: 3-5');
     
     return {
       status: 'placeholder',

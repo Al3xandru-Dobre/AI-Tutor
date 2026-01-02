@@ -9,12 +9,15 @@ require('./config/transformers.config');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
 require('dotenv').config();
 
 // ========================================
 // CENTRALIZED INITIALIZATION
 // ========================================
 const { initializeAllServices, getServices, ensureServicesInitialized } = require('./middlewear/initialise');
+const redisService = require('./services/RedisService');
+const emailService = require('./services/EmailService');
 
 // ========================================
 // CENTRALIZED ROUTES
@@ -25,9 +28,27 @@ const apiRoutes = require('./routes/index');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// CORS configuration (with credentials for cookies)
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true, // ESSENTIAL for cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Body parsing middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // ========================================
@@ -35,8 +56,20 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // ========================================
 (async () => {
   try {
+    // Initialize Redis first
+    console.log('\n🔧 Initializing Redis...');
+    await redisService.initialize();
+    const redisHealth = await redisService.healthCheck();
+    console.log(`   ${redisHealth.status === 'healthy' ? '✅' : '❌'} Redis: ${redisHealth.message}\n`);
+
+    // Initialize Email Service
+    console.log('🔧 Initializing Email Service...');
+    await emailService.initialize();
+    console.log(`   ${emailService.isEmailConfigured() ? '✅' : '⚠️ '} Email Service: ${emailService.isEmailConfigured() ? 'Configured' : 'Not configured (email verification disabled)'}\n`);
+
+    // Initialize all other services (RAG, Ollama, etc.)
     await initializeAllServices();
-    
+
     // NOW start the server
     startServer();
   } catch (error) {
@@ -88,7 +121,7 @@ function startServer() {
 
     console.log('\n╔══════════════════════════════════════════════════════════════╗');
     console.log('║                                                              ║');
-    console.log('║     🚀 Japanese Tutor v3.5 - ChromaDB Enhanced Edition      ║');
+    console.log('║     🚀 Japanese Tutor v4.0 - Authentication Enabled     ║');
     console.log('║                                                              ║');
     console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
@@ -98,12 +131,20 @@ function startServer() {
 
     console.log('🔗 Key Endpoints:');
     console.log(`   📖 Frontend:        http://localhost:${PORT}`);
+    console.log(`   🔐 Auth:           http://localhost:${PORT}/api/auth/*`);
+    console.log(`   👤 User:           http://localhost:${PORT}/api/users/*`);
     console.log(`   🔧 API Test:        http://localhost:${PORT}/api/test`);
     console.log(`   ❤️  Health Check:    http://localhost:${PORT}/api/health`);
     console.log(`   🔍 ChromaDB Health: http://localhost:${PORT}/api/chromadb/health`);
     console.log(`   💾 ChromaDB Stats:  http://localhost:${PORT}/api/rag/chroma-stats`);
-    console.log(`   👤 User Profile:    http://localhost:${PORT}/api/rag/user/profile`);
-    console.log(`   📊 History Stats:   http://localhost:${PORT}/api/rag/history-rag/stats\n`);
+
+    console.log('\n🔒 Authentication Configuration:');
+    console.log(`   Redis:              ${redisService.isConnected ? '✅ Connected' : '❌ Disconnected'}`);
+    console.log(`   Email Service:      ${emailService.isEmailConfigured() ? '✅ Configured (Scaleway)' : '⚠️  Not configured'}`);
+    console.log(`   Access Token TTL:   ${process.env.JWT_ACCESS_EXPIRATION || '10m'}`);
+    console.log(`   Refresh Token TTL:  ${process.env.JWT_REFRESH_EXPIRATION || '24h'}`);
+    console.log(`   CSRF Protection:    ✅ Enabled`);
+    console.log(`   Rate Limiting:      ✅ Enabled (Redis-based)\n`);
 
     if (rag.useChromaDB) {
       console.log('🎯 ChromaDB Configuration:');

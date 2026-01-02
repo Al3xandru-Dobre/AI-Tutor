@@ -1,5 +1,8 @@
 const { getServices } = require('../middlewear/initialise');
 
+// In-memory storage for guest conversations (not persisted)
+const guestConversations = new Map();
+
 /**
  * POST /api/chat
  * Main chat endpoint with orchestration and advanced RAG support
@@ -17,23 +20,70 @@ async function handleChat(req, res) {
             conversationId = null,
             useAdvancedRAG = false,
             provider = null,
-            model = null
+            model = null,
+            isGuest = false
         } = req.body;
+        
         if(!message || message.trim().length === 0) {
             return res.status(400).json({error: 'Message is required'});
-        }  
-        if(!conversationId){
-            const newConversation = await history.createConversation(`Chat about "${message.substring(0,20)}..."`);
-            conversationId = newConversation.id;
         }
-        await history.addMessage(conversationId, {role: 'user', content:message});
+        
+        // Handle guest conversations (in-memory only)
+        if (isGuest) {
+            if(!conversationId){
+                const guestId = crypto.randomUUID();
+                guestConversations.set(guestId, {
+                    id: guestId,
+                    title: `Chat about "${message.substring(0,20)}..."`,
+                    messages: [],
+                    createdAt: new Date().toISOString()
+                });
+                conversationId = guestId;
+            }
+            
+            const guestConv = guestConversations.get(conversationId);
+            if (guestConv) {
+                guestConv.messages.push({
+                    role: 'user',
+                    content: message,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                // Create new conversation if ID doesn't exist
+                const newGuestId = crypto.randomUUID();
+                guestConversations.set(newGuestId, {
+                    id: newGuestId,
+                    title: `Chat about "${message.substring(0,20)}..."`,
+                    messages: [{
+                        role: 'user',
+                        content: message,
+                        timestamp: new Date().toISOString()
+                    }],
+                    createdAt: new Date().toISOString()
+                });
+                conversationId = newGuestId;
+            }
+        } else {
+            // Authenticated users - use ConversationService
+            if(!conversationId){
+                const newConversation = await history.createConversation(`Chat about "${message.substring(0,20)}..."`);
+                conversationId = newConversation.id;
+            }
+            await history.addMessage(conversationId, {role: 'user', content:message});
+        }
 
         // Retrieve conversation history for context
-        // This ensures the model has access to all previous messages
-        const conversationHistory = await history.getConversationMessages(conversationId, {
-            maxTokens: 8000,  // Reserve tokens for context (adjustable based on model)
-            preserveRecent: true  // Keep most recent messages if truncation is needed
-        });
+        let conversationHistory;
+        
+        if (isGuest) {
+            const guestConv = guestConversations.get(conversationId);
+            conversationHistory = guestConv ? guestConv.messages : [];
+        } else {
+            conversationHistory = await history.getConversationMessages(conversationId, {
+                maxTokens: 8000,
+                preserveRecent: true
+            });
+        }
 
         console.log(`📝 Including ${conversationHistory.length} messages from conversation history`);
 
@@ -111,11 +161,24 @@ async function handleChat(req, res) {
         }
 
         const totalTime = Date.now() - startTime;
-
-        await history.addMessage(conversationId, {role: 'assistant', content: response})
-
-        if(historyRAG.isEnabled){
-            await orchestrator.onNewConversation(conversationId)
+        
+        // Save assistant message
+        if (isGuest) {
+            const guestConv = guestConversations.get(conversationId);
+            if (guestConv) {
+                guestConv.messages.push({
+                    role: 'assistant',
+                    content: response,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } else {
+            await history.addMessage(conversationId, {role: 'assistant', content: response});
+        }
+        
+        // Skip historyRAG for guests
+        if (!isGuest && historyRAG.isEnabled) {
+            await orchestrator.onNewConversation(conversationId);
         }
 
          res.json({

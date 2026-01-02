@@ -53,13 +53,22 @@
             </div>
 
             <div class="about-section">
-                <div class="about-title">About</div>
+                <div class="about-title">Account</div>
+                <div class="about-content">
+                    <p><strong id="userNameDisplay">Loading...</strong></p>
+                    <p class="user-email" id="userEmailDisplay">Loading...</p>
+                    <div class="about-links">
+                        <a href="profile.html" class="about-link">Profile</a>
+                        <a href="settings.html" class="about-link">Settings</a>
+                        <a href="#" class="about-link" onclick="logout()">Logout</a>
+                    </div>
+                </div>
+                <div class="about-title" style="margin-top: 16px;">About</div>
                 <div class="about-content">
                     <p><strong>Japanese AI Tutor</strong> <span class="version-badge">v1.5</span></p>
                     <p>Your personal AI-powered Japanese learning companion!</p>
                     <div class="about-links">
                         <a href="#" class="about-link" onclick="showHelp()">Help</a>
-                        <a href="#" class="about-link" onclick="showSettings()">Settings</a>
                         <a href="#" class="about-link" onclick="showFeedback()">Feedback</a>
                     </div>
                 </div>
@@ -1396,6 +1405,47 @@
                 }
             }
         }
+    </script>
+    <script>
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('userNameDisplay').textContent = data.user.name || 'User';
+                document.getElementById('userEmailDisplay').textContent = data.user.email || '';
+                
+                return data;
+            } catch (error) {
+                console.log('User not authenticated, redirecting to login...');
+                localStorage.setItem('redirectAfterLogin', window.location.pathname);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+        
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+        
+        checkAuth();
     </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ensureServicesInitialized } = require('../middlewear/initialise');
+const { authenticate, optionalAuth } = require('../middlewear/auth');
 const {
   listConversations,
   getConversation,
@@ -15,16 +16,16 @@ const {
 // Apply middleware to all routes
 router.use(ensureServicesInitialized);
 
-// Conversation routes
-router.get('/', listConversations);
-router.delete('/', deleteAllConversations);  // Must be before /:id route
-router.get('/:id', getConversation);
-router.delete('/:id', deleteConversation);
-router.post('/:id/export', exportConversation);
+// Conversation routes (require authentication)
+router.get('/', authenticate, listConversations);
+router.delete('/', authenticate, deleteAllConversations);
+router.get('/:id', authenticate, getConversation);
+router.delete('/:id', authenticate, deleteConversation);
+router.post('/:id/export', authenticate, exportConversation);
 
-// Training data routes
-router.post('/training/sync', syncTrainingData);
-router.get('/training/stats', getTrainingStats);
-router.get('/training/export', exportAllTrainingData);
+// Training data routes (require authentication)
+router.post('/training/sync', authenticate, syncTrainingData);
+router.get('/training/stats', authenticate, getTrainingStats);
+router.get('/training/export', authenticate, exportAllTrainingData);
 
 module.exports = router;

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Japanese AI Tutor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="light-theme.css">
+    <link rel="stylesheet" href="landing.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: var(--background);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-card {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-2xl);
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .auth-header {
+            margin-bottom: 32px;
+        }
+
+        .auth-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .auth-title {
+            font-size: 1.75em;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-message {
+            color: var(--text-secondary);
+            font-size: 1em;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .success-icon {
+            color: var(--success);
+        }
+
+        .error-icon {
+            color: var(--error);
+        }
+
+        .loading-spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-btn {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: var(--radius-lg);
+            color: white;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+        }
+
+        body.light-theme .auth-card {
+            background: white;
+            border-color: #e0e0e0;
+        }
+
+        body.light-theme .auth-title {
+            background: linear-gradient(135deg, #c1272d 0%, #d94d52 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div id="icon" class="auth-icon">
+                    <div class="loading-spinner"></div>
+                </div>
+                <h1 id="title" class="auth-title">Verifying Email...</h1>
+                <p id="message" class="auth-message">Please wait while we verify your email address.</p>
+            </div>
+            <a id="redirectBtn" class="back-btn" style="display: none;" href="login.html">Go to Login</a>
+        </div>
+    </div>
+
+    <script>
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        document.body.classList.add(currentTheme + '-theme');
+
+        const icon = document.getElementById('icon');
+        const title = document.getElementById('title');
+        const message = document.getElementById('message');
+        const redirectBtn = document.getElementById('redirectBtn');
+
+        async function verifyEmail() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if (!token) {
+                showError('No verification token provided. Please check your email link.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/auth/verify/${token}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Verification failed');
+                }
+
+                showSuccess(data.message || 'Email verified successfully!');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            } catch (error) {
+                showError(error.message || 'An error occurred during verification.');
+            }
+        }
+
+        function showSuccess(msg) {
+            icon.innerHTML = '<div class="auth-icon success-icon">✓</div>';
+            title.textContent = 'Success';
+            message.textContent = msg;
+            redirectBtn.style.display = 'inline-block';
+        }
+
+        function showError(msg) {
+            icon.innerHTML = '<div class="auth-icon error-icon">✕</div>';
+            title.textContent = 'Verification Failed';
+            message.textContent = msg + ' Please try again or contact support.';
+            redirectBtn.style.display = 'inline-block';
+            redirectBtn.textContent = 'Go to Login';
+        }
+
+        verifyEmail();
+    </script>
+</body>
+</html>

@@ -81,5 +81,27 @@
     "extractedBy": "manual",
     "confidence": 1,
     "updatedAt": "2025-11-02T19:56:13.585Z"
+  },
+  "a3ae2fc2e1c043f7": {
+    "id": "a3ae2fc2e1c043f7",
+    "japanese": "da",
+    "romaji": "asda",
+    "english": "ya",
+    "level": "N5",
+    "type": "noun",
+    "example": "ad",
+    "notes": ",d;afa;",
+    "addedDate": "2025-11-02T20:03:11.382Z",
+    "reviewCount": 0,
+    "masteryLevel": 0,
+    "lastReviewed": null,
+    "tags": [],
+    "easeFactor": 2.5,
+    "interval": 0,
+    "nextReviewDate": null,
+    "lapses": 0,
+    "conversationId": null,
+    "extractedBy": "manual",
+    "confidence": 1
   }
 }

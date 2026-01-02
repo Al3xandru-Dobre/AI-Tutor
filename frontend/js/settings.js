@@ -2,6 +2,10 @@
 // Functions for managing settings, privacy, and system configuration
 
 async function showSettings() {
+    window.location.href = 'settings.html';
+}
+
+async function showSettingsModal() {
     const settingsModal = document.createElement('div');
     settingsModal.className = 'settings-modal-overlay';
     settingsModal.innerHTML = `
