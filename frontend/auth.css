@@ -1,0 +1,565 @@
+/* ============================================================
+   Auth pages — shared stylesheet · "Washi & Ink"
+   Used by: login.html, register.html, forgot-password.html,
+            reset-password.html, verify-email.html
+
+   Every value comes from tokens.css (dark "Sumi" on :root,
+   light "Washi" on body.light-theme) — both themes work by
+   construction. No raw hex, no gradients, no backdrop-filter,
+   no motion beyond one subtle card entrance.
+   ============================================================ */
+
+/* style.css sets body { display: flex; height: 100vh } for the
+   chat app shell; auth pages are standalone centered documents. */
+body {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+}
+
+/* ---------- page shell ---------- */
+
+.auth-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Static kana watermark — identity without motion (§6.2) */
+.auth-kana {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: min(45vh, 380px);
+    color: var(--accent);
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+}
+
+/* ---------- card ---------- */
+
+@keyframes authCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-2);
+    position: relative;
+    z-index: 10;
+    animation: authCardIn var(--transition-base) ease-out;
+}
+
+/* verify-email centers all content */
+.auth-card.auth-center {
+    text-align: center;
+}
+
+/* ---------- header ---------- */
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.auth-logo {
+    margin-bottom: var(--space-4);
+}
+
+.auth-logo .logo-mark {
+    width: 48px;
+    height: 48px;
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.02em;
+}
+
+.auth-subtitle {
+    color: var(--text-2);
+    font-size: 15px;
+    margin-bottom: 0;
+}
+
+/* ---------- form ---------- */
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: -0.01em;
+    margin: 0; /* style.css .form-label adds a margin-bottom */
+}
+
+.form-input {
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-1);
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus,
+.form-input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.form-input::placeholder {
+    color: var(--text-3);
+}
+
+/* password visibility toggle */
+.password-input-container {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-3);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.password-toggle:hover {
+    color: var(--text-1);
+    background: var(--surface-3);
+}
+
+.password-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* password strength meter (register / reset) */
+.password-strength {
+    margin-top: var(--space-2);
+    height: 4px;
+    background: var(--border);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0;
+    border-radius: var(--radius-full);
+    transition: width var(--transition-base), background var(--transition-base);
+}
+
+.password-strength-bar.weak {
+    width: 33%;
+    background: var(--error);
+}
+
+.password-strength-bar.medium {
+    width: 66%;
+    background: var(--warning);
+}
+
+.password-strength-bar.strong {
+    width: 100%;
+    background: var(--success);
+}
+
+.password-requirements {
+    margin-top: var(--space-2);
+    font-size: 12px;
+    color: var(--text-3);
+}
+
+.requirement {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: var(--space-1);
+}
+
+.requirement.met {
+    color: var(--success);
+}
+
+.requirement-icon {
+    font-size: 14px;
+}
+
+/* ---------- buttons ---------- */
+
+.auth-btn {
+    padding: 13px 24px;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    color: var(--accent-contrast);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.auth-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ---------- divider & links ---------- */
+
+.auth-divider {
+    text-align: center;
+    margin: var(--space-5) 0;
+    position: relative;
+}
+
+.auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-divider span {
+    background: var(--surface);
+    padding: 0 var(--space-4);
+    color: var(--text-3);
+    font-size: 13px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: var(--space-5);
+}
+
+.auth-text {
+    color: var(--text-2);
+    font-size: 14px;
+    margin-bottom: var(--space-2);
+}
+
+.auth-link,
+.forgot-link {
+    color: var(--text-2);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+
+.auth-link:hover,
+.forgot-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* remember me / forgot row (login) */
+.remember-forgot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.remember-me label {
+    color: var(--text-2);
+    cursor: pointer;
+    user-select: none;
+}
+
+/* terms checkbox (register) */
+.terms-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.4;
+}
+
+.terms-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    margin-top: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.terms-checkbox label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.terms-checkbox a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.terms-checkbox a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- alerts ---------- */
+
+.error-message,
+.success-message {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.error-message {
+    background: var(--error-subtle);
+    border: 1px solid var(--error);
+    color: var(--error);
+}
+
+.success-message {
+    background: var(--success-subtle);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+/* invalid-token note (reset-password) */
+.token-invalid {
+    text-align: center;
+    color: var(--text-2);
+    font-size: 14px;
+    padding: var(--space-4) 0;
+}
+
+.token-invalid p {
+    margin-bottom: var(--space-2);
+}
+
+.token-invalid a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.token-invalid a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- page chrome: back link + theme toggle ---------- */
+
+.back-to-home {
+    position: absolute;
+    top: var(--space-5);
+    left: var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-2);
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 20;
+    transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.back-to-home:hover {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+}
+
+.back-to-home svg {
+    width: 16px;
+    height: 16px;
+}
+
+.auth-theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.auth-theme-toggle:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+/* ---------- verify-email specifics ---------- */
+
+.auth-icon {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: var(--space-4);
+}
+
+/* the page script nests .auth-icon inside #icon.auth-icon — keep a
+   px size so it does not compound (old em rule rendered a 256px glyph) */
+.auth-icon .auth-icon {
+    font-size: inherit;
+    margin-bottom: 0;
+}
+
+.auth-message {
+    color: var(--text-2);
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: var(--space-5);
+}
+
+.success-icon {
+    color: var(--success);
+}
+
+.error-icon {
+    color: var(--error);
+}
+
+.loading-spinner {
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: var(--radius-full);
+    width: 40px;
+    height: 40px;
+    animation: authSpin 1s linear infinite;
+    margin: 0 auto var(--space-4);
+}
+
+@keyframes authSpin {
+    to { transform: rotate(360deg); }
+}
+
+.back-btn {
+    display: inline-block;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    color: var(--accent-contrast);
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.back-btn:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: var(--space-4) var(--space-3);
+    }
+
+    .auth-card {
+        padding: var(--space-5);
+    }
+
+    .auth-title {
+        font-size: 20px;
+    }
+
+    .back-to-home {
+        top: var(--space-3);
+        left: var(--space-3);
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .auth-theme-toggle {
+        top: var(--space-3);
+        right: var(--space-3);
+    }
+}

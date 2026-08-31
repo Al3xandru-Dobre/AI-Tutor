@@ -1,0 +1,3 @@
+# This file ensures the grammar directory is tracked by Git
+# Grammar resources (PDF, TXT, MD files) should be placed in this directory
+# The RAG service will automatically index them on startup

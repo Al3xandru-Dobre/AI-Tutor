@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Japanese AI Tutor</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="landing.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <script>(function(){var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.body.classList.add(t+'-theme');})();</script>
+    <div class="auth-container">
+        <!-- Static kana watermark -->
+        <div class="auth-kana" aria-hidden="true">日</div>
+
+        <!-- Theme toggle -->
+        <button class="auth-theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" title="Toggle theme" aria-label="Toggle theme">
+            <svg class="icon theme-icon-sun" style="display:none"><use href="icons.svg#sun"/></svg>
+            <svg class="icon theme-icon-moon"><use href="icons.svg#moon"/></svg>
+        </button>
+
+        <div class="auth-card auth-center">
+            <div class="auth-header">
+                <div class="auth-logo"><svg class="logo-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="tile" x="0.5" y="0.5" width="25" height="25" rx="5.5"/><text class="glyph" x="13" y="18.5" font-size="15" text-anchor="middle">日</text></svg></div>
+                <div id="icon" class="auth-icon">
+                    <div class="loading-spinner"></div>
+                </div>
+                <h1 id="title" class="auth-title">Verifying Email...</h1>
+                <p id="message" class="auth-message">Please wait while we verify your email address.</p>
+            </div>
+            <a id="redirectBtn" class="back-btn" style="display: none;" href="login.html">Go to Login</a>
+        </div>
+    </div>
+
+    <script src="js/ui-utils.js"></script>
+    <script>initializeTheme();</script>
+    <script>
+        const icon = document.getElementById('icon');
+        const title = document.getElementById('title');
+        const message = document.getElementById('message');
+        const redirectBtn = document.getElementById('redirectBtn');
+
+        async function verifyEmail() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if (!token) {
+                showError('No verification token provided. Please check your email link.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/auth/verify/${token}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Verification failed');
+                }
+
+                showSuccess(data.message || 'Email verified successfully!');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            } catch (error) {
+                showError(error.message || 'An error occurred during verification.');
+            }
+        }
+
+        function showSuccess(msg) {
+            icon.innerHTML = '<div class="auth-icon success-icon">✓</div>';
+            title.textContent = 'Success';
+            message.textContent = msg;
+            redirectBtn.style.display = 'inline-block';
+        }
+
+        function showError(msg) {
+            icon.innerHTML = '<div class="auth-icon error-icon">✕</div>';
+            title.textContent = 'Verification Failed';
+            message.textContent = msg + ' Please try again or contact support.';
+            redirectBtn.style.display = 'inline-block';
+            redirectBtn.textContent = 'Go to Login';
+        }
+
+        verifyEmail();
+    </script>
+</body>
+</html>

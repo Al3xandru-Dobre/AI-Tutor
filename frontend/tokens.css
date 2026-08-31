@@ -1,0 +1,219 @@
+/* ============================================================
+   Japanese AI Tutor — Design Tokens · "Washi & Ink"
+   Single source of truth for color, type, spacing and motion.
+
+   Dark theme "Sumi" lives on :root.
+   Light theme "Washi" overrides on body.light-theme.
+   There is deliberately NO body.dark-theme block — :root is dark.
+
+   The legacy aliases at the bottom of each theme keep older
+   stylesheets (notebook.css, landing.css, auth pages) rendering
+   sanely until they are migrated. Do not use them in new code.
+   ============================================================ */
+
+:root {
+    /* -- surfaces: Sumi (warm charcoal, no blue cast) -- */
+    --bg: #141518;
+    --surface: #1B1D21;
+    --surface-2: #232529;
+    --surface-3: #2C2E33;
+    --border: #2E3136;
+    --border-strong: #3D4046;
+
+    /* -- text -- */
+    --text-1: #F0EEE9;
+    --text-2: #B3B0A8;
+    --text-3: #85827A;
+
+    /* -- accent: vermillion (hanko seal) -- */
+    --accent: #E05843;                 /* 4.9:1 on --bg */
+    --accent-hover: #E96F5C;
+    --accent-contrast: #1F120E;        /* ink text on vermillion, 5.7:1 */
+    --accent-subtle: rgba(224, 88, 67, 0.14);
+
+    /* -- status -- */
+    --success: #4CAF82;
+    --success-subtle: rgba(76, 175, 130, 0.14);
+    --warning: #E2B341;
+    --warning-subtle: rgba(226, 179, 65, 0.14);
+    --error: #F28671;
+    --error-subtle: rgba(242, 134, 113, 0.14);
+
+    /* -- effects -- */
+    --overlay: rgba(10, 11, 13, 0.55);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+    /* -- typography -- */
+    --font-body: 'Inter', 'Noto Sans JP', -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Shippori Mincho', 'Noto Serif JP', serif;
+    --font-mono: 'Monaco', 'Menlo', 'Consolas', monospace;
+
+    /* -- spacing (4pt scale) -- */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+
+    /* -- radii -- */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-full: 999px;
+
+    /* -- z-index scale -- */
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 300;
+    --z-modal: 400;
+    --z-toast: 500;
+
+    /* -- motion -- */
+    --transition-fast: 120ms ease-out;
+    --transition-base: 180ms ease-out;
+
+    /* -------- legacy aliases (remove once all CSS migrated) -------- */
+    --primary: var(--accent);
+    --primary-hover: var(--accent-hover);
+    --primary-light: #E89484;                    /* interim tint, legible as text */
+    --secondary: var(--accent);
+    --accent-gradient: var(--accent);            /* gradients alias to solid color */
+    --primary-gradient: var(--accent);
+    --background: var(--bg);
+    --surface-elevated: var(--surface-2);
+    --surface-hover: var(--surface-2);
+    --surface-light: var(--surface-2);
+    --text-primary: var(--text-1);
+    --text-secondary: var(--text-2);
+    --text-muted: var(--text-3);
+    --text-inverse: var(--accent-contrast);
+    --border-light: var(--border-strong);
+    --success-light: var(--success-subtle);
+    --warning-light: var(--warning-subtle);
+    --error-light: var(--error-subtle);
+    --shadow-sm: var(--shadow-1);
+    --shadow-md: var(--shadow-1);
+    --shadow-lg: var(--shadow-2);
+    --shadow-xl: var(--shadow-2);
+    --shadow-glow: 0 0 0 0 rgba(0, 0, 0, 0);    /* neutralized */
+    --shadow-glow-accent: 0 0 0 0 rgba(0, 0, 0, 0);
+    --radius-2xl: 18px;
+}
+
+body.light-theme {
+    /* -- surfaces: Washi (warm paper) -- */
+    --bg: #FAF9F7;
+    --surface: #FFFFFF;
+    --surface-2: #F4F2EE;
+    --surface-3: #ECE9E3;
+    --border: #E4E1DA;
+    --border-strong: #D4D0C7;
+
+    /* -- text -- */
+    --text-1: #26231F;
+    --text-2: #5D5952;
+    --text-3: #7A756C;
+
+    /* -- accent -- */
+    --accent: #C1272D;                 /* 5.4:1 on --bg */
+    --accent-hover: #A81E23;
+    --accent-contrast: #FFFFFF;        /* 5.8:1 on vermillion */
+    --accent-subtle: #F9E9E7;
+
+    /* -- status -- */
+    --success: #1F7A4D;
+    --success-subtle: #E3F2EA;
+    --warning: #9A6700;
+    --warning-subtle: #FBF3DD;
+    --error: #B3261E;
+    --error-subtle: #F9E5E3;
+
+    /* -- effects -- */
+    --overlay: rgba(38, 35, 31, 0.45);
+    --shadow-1: 0 1px 2px rgba(38, 35, 31, 0.06);
+    --shadow-2: 0 12px 32px rgba(38, 35, 31, 0.14);
+
+    /* -------- legacy aliases -------- */
+    --primary: var(--accent);
+    --primary-hover: var(--accent-hover);
+    --primary-light: #B85450;
+    --secondary: var(--accent);
+    --accent-gradient: var(--accent);
+    --primary-gradient: var(--accent);
+    --background: var(--bg);
+    --surface-elevated: var(--surface-2);
+    --surface-hover: var(--surface-2);
+    --surface-light: var(--surface-2);
+    --text-primary: var(--text-1);
+    --text-secondary: var(--text-2);
+    --text-muted: var(--text-3);
+    --text-inverse: var(--accent-contrast);
+    --border-light: var(--border-strong);
+    --success-light: var(--success-subtle);
+    --warning-light: var(--warning-subtle);
+    --error-light: var(--error-subtle);
+}
+
+/* ============================================================
+   Base styles
+   ============================================================ */
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text-1);
+    line-height: 1.6;
+    letter-spacing: -0.006em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+    background: var(--accent-subtle);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Sprite icon sizing (icons.svg) */
+.icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* Mincho display type — wordmark and Japanese display lines only */
+.jp-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+}
+
+/* Vermillion logo tile (inline SVG in headers/auth pages) */
+.logo-mark {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+}
+.logo-mark .tile { fill: var(--accent); }
+.logo-mark .glyph {
+    fill: var(--accent-contrast);
+    font-family: var(--font-display), serif;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

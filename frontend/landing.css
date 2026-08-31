@@ -1,0 +1,392 @@
+/* ============================================================
+   Landing page · "Washi & Ink"
+   Tokens come from tokens.css (dark "Sumi" on :root,
+   light "Washi" on body.light-theme). No gradients, no glow,
+   no keyframes — motion is limited to 120-180ms color/opacity
+   transitions. .btn-primary/.btn-secondary/.btn-cta are shared
+   with the auth pages: do not remove them.
+   ============================================================ */
+
+.landing-page {
+    overflow-x: hidden;
+    background: var(--bg);
+}
+
+.landing-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Theme toggle — ghost icon button */
+.landing-theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.landing-theme-toggle:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+.landing-theme-toggle .icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* Hero */
+.hero-section {
+    position: relative;
+    min-height: 92vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 96px 32px 64px;
+    overflow: hidden;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--space-5);
+}
+
+.hero-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: var(--space-4);
+}
+
+.hero-title {
+    font-size: 48px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-1);
+    margin-bottom: var(--space-3);
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: var(--space-5);
+}
+
+.hero-description {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-2);
+    max-width: 560px;
+    margin-bottom: var(--space-6);
+}
+
+.hero-buttons {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.hero-alt-link {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: var(--space-4);
+}
+
+.hero-alt-link a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.hero-alt-link a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+/* Static vertical kana watermark — identity without motion */
+.hero-kana {
+    position: absolute;
+    top: 50%;
+    right: 4vw;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: clamp(48px, 9vw, 120px);
+    line-height: 1.1;
+    color: var(--accent);
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: 0.2em;
+}
+
+/* Features */
+.features-section {
+    padding: 96px 32px;
+}
+
+.section-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-align: center;
+    color: var(--text-1);
+    margin-bottom: var(--space-7);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-5);
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    transition: border-color var(--transition-fast);
+}
+
+.feature-card:hover {
+    border-color: var(--border-strong);
+}
+
+.feature-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+}
+
+.feature-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: var(--space-2);
+}
+
+.feature-card p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+}
+
+/* Quick start — three numbered steps */
+.quick-start-section {
+    padding: 96px 32px;
+}
+
+.quick-start-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-5);
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.quick-start-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.quick-start-card:hover {
+    border-color: var(--border-strong);
+}
+
+.quick-start-number {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-radius: var(--radius-full);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 auto var(--space-4);
+}
+
+.quick-start-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: var(--space-2);
+}
+
+.quick-start-card p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+}
+
+/* Footer */
+.landing-footer {
+    margin-top: auto;
+    padding: var(--space-7) 32px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.footer-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.footer-logo {
+    width: 24px;
+    height: 24px;
+}
+
+.footer-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+
+.footer-description {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: var(--space-2);
+}
+
+.footer-copy {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: var(--space-4);
+}
+
+/* Buttons — shared with the auth pages (login/register/…).
+   Primary and CTA are the same solid-accent treatment. */
+.btn-primary,
+.btn-cta,
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 44px;
+    padding: 0 var(--space-5);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-primary,
+.btn-cta {
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.btn-primary:hover,
+.btn-cta:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text-1);
+}
+
+.btn-secondary:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 88vh;
+        padding: 80px 20px 48px;
+    }
+
+    .hero-kana {
+        display: none;
+    }
+
+    .hero-title {
+        font-size: 34px;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .hero-buttons .btn-primary,
+    .hero-buttons .btn-cta,
+    .hero-buttons .btn-secondary {
+        width: 100%;
+    }
+
+    .features-section,
+    .quick-start-section {
+        padding: 64px 20px;
+    }
+
+    .features-grid,
+    .quick-start-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-theme-toggle {
+        top: 16px;
+        right: 16px;
+    }
+}

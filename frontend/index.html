@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese AI Tutor - Welcome</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="landing.css">
+</head>
+<body class="landing-page">
+    <script>(function(){var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.body.classList.add(t+'-theme');})();</script>
+    <div class="landing-container">
+        <!-- Theme Toggle -->
+        <button class="landing-theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" title="Toggle theme">
+            <svg class="icon theme-icon-sun" style="display:none"><use href="icons.svg#sun"/></svg>
+            <svg class="icon theme-icon-moon"><use href="icons.svg#moon"/></svg>
+        </button>
+
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-kana" aria-hidden="true">あいうえお</div>
+            <div class="hero-content">
+                <svg class="logo-mark hero-logo" viewBox="0 0 26 26" aria-hidden="true"><rect class="tile" x="0.5" y="0.5" width="25" height="25" rx="5.5"/><text class="glyph" x="13" y="18.5" font-size="15" text-anchor="middle">日</text></svg>
+                <p class="hero-eyebrow">AI-POWERED JAPANESE LEARNING</p>
+                <h1 class="hero-title">Japanese AI Tutor</h1>
+                <p class="hero-subtitle jp-display">あなたの日本語講師</p>
+                <p class="hero-description">
+                    Master the beautiful Japanese language with your personal AI-powered learning companion.
+                    From basic hiragana to advanced kanji, from simple greetings to complex conversations.
+                </p>
+                <div class="hero-buttons">
+                    <a href="register.html" class="btn-cta">Get Started</a>
+                    <a href="login.html" class="btn-secondary">Sign In</a>
+                </div>
+                <p class="hero-alt-link">Already just exploring? <a href="guest-chat.html">Try as guest</a></p>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features-section" id="features">
+            <h2 class="section-title">Everything you need to learn Japanese</h2>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#spark"/></svg></div>
+                    <h3>AI-Powered Learning</h3>
+                    <p>Advanced AI technology adapts to your learning style and pace, providing personalized guidance every step of the way.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#book"/></svg></div>
+                    <h3>Comprehensive Content</h3>
+                    <p>From hiragana and katakana to kanji, grammar, and conversation practice - everything you need in one place.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#globe"/></svg></div>
+                    <h3>Internet-Enhanced</h3>
+                    <p>Access real-time information and the latest cultural insights with integrated internet search capabilities.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#send"/></svg></div>
+                    <h3>Interactive Conversations</h3>
+                    <p>Practice real-world Japanese conversations and get instant feedback on your language skills.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#doc"/></svg></div>
+                    <h3>Custom Study Materials</h3>
+                    <p>Generate personalized study materials, flashcards, and practice exercises tailored to your needs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><svg class="icon"><use href="icons.svg#chart"/></svg></div>
+                    <h3>Progress Tracking</h3>
+                    <p>Track your learning journey with conversation history and export your progress at any time.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Start Section -->
+        <div class="quick-start-section">
+            <h2 class="section-title">Ready to Begin?</h2>
+            <div class="quick-start-grid">
+                <div class="quick-start-card">
+                    <div class="quick-start-number">1</div>
+                    <h3>Choose Your Topic</h3>
+                    <p>Start with basics like greetings or dive into advanced grammar</p>
+                </div>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">2</div>
+                    <h3>Ask Questions</h3>
+                    <p>Get instant answers and explanations tailored to your level</p>
+                </div>
+                <div class="quick-start-card">
+                    <div class="quick-start-number">3</div>
+                    <h3>Practice &amp; Learn</h3>
+                    <p>Engage in interactive conversations and exercises</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <svg class="logo-mark footer-logo" viewBox="0 0 26 26" aria-hidden="true"><rect class="tile" x="0.5" y="0.5" width="25" height="25" rx="5.5"/><text class="glyph" x="13" y="18.5" font-size="15" text-anchor="middle">日</text></svg>
+                    <span class="footer-name">Japanese AI Tutor</span>
+                </div>
+                <p class="footer-description">Your personal AI-powered Japanese learning companion</p>
+                <p class="footer-copy">© 2026 Japanese AI Tutor</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/ui-utils.js"></script>
+    <script>initializeTheme();</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Japanese AI Tutor</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="landing.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <script>(function(){var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.body.classList.add(t+'-theme');})();</script>
+    <div class="auth-container">
+        <!-- Static kana watermark -->
+        <div class="auth-kana" aria-hidden="true">語</div>
+
+        <!-- Back to home button -->
+        <a href="index.html" class="back-to-home">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+        </a>
+
+        <!-- Theme toggle -->
+        <button class="auth-theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-pressed="false" title="Toggle theme" aria-label="Toggle theme">
+            <svg class="icon theme-icon-sun" style="display:none"><use href="icons.svg#sun"/></svg>
+            <svg class="icon theme-icon-moon"><use href="icons.svg#moon"/></svg>
+        </button>
+
+        <!-- Register card -->
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo"><svg class="logo-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="tile" x="0.5" y="0.5" width="25" height="25" rx="5.5"/><text class="glyph" x="13" y="18.5" font-size="15" text-anchor="middle">日</text></svg></div>
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Start your Japanese learning journey</p>
+            </div>
+
+            <form class="auth-form" id="registerForm">
+                <div id="messageContainer"></div>
+
+                <div class="form-group">
+                    <label class="form-label" for="name">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        class="form-input" 
+                        placeholder="Enter your full name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input" 
+                        placeholder="Enter your email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="password-input-container">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="Create a strong password"
+                            required
+                        >
+                        <button type="button" class="password-toggle" id="passwordToggle">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                    </div>
+                    <div class="password-requirements">
+                        <div class="requirement" id="lengthReq">
+                            <span class="requirement-icon">○</span>
+                            At least 8 characters
+                        </div>
+                        <div class="requirement" id="uppercaseReq">
+                            <span class="requirement-icon">○</span>
+                            One uppercase letter
+                        </div>
+                        <div class="requirement" id="lowercaseReq">
+                            <span class="requirement-icon">○</span>
+                            One lowercase letter
+                        </div>
+                        <div class="requirement" id="numberReq">
+                            <span class="requirement-icon">○</span>
+                            One number
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <div class="password-input-container">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirmPassword" 
+                            class="form-input" 
+                            placeholder="Confirm your password"
+                            required
+                        >
+                        <button type="button" class="password-toggle" id="confirmPasswordToggle">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="terms-checkbox">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="auth-btn" id="registerBtn" disabled>
+                    Create Account
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>OR</span>
+            </div>
+
+            <div class="auth-links">
+                <p class="auth-text">Already have an account?</p>
+                <a href="login.html" class="auth-link">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ui-utils.js"></script>
+    <script>initializeTheme();</script>
+    <script>
+        // Password toggle functionality
+        function setupPasswordToggle(toggleId, inputId) {
+            const toggle = document.getElementById(toggleId);
+            const input = document.getElementById(inputId);
+            let visible = false;
+
+            toggle.addEventListener('click', () => {
+                visible = !visible;
+                input.type = visible ? 'text' : 'password';
+                
+                if (visible) {
+                    toggle.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    `;
+                } else {
+                    toggle.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    `;
+                }
+            });
+        }
+
+        setupPasswordToggle('passwordToggle', 'password');
+        setupPasswordToggle('confirmPasswordToggle', 'confirmPassword');
+
+        // Password strength checker
+        const passwordInput = document.getElementById('password');
+        const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const registerBtn = document.getElementById('registerBtn');
+        const termsCheckbox = document.getElementById('terms');
+
+        const requirements = {
+            length: { element: document.getElementById('lengthReq'), regex: /.{8,}/ },
+            uppercase: { element: document.getElementById('uppercaseReq'), regex: /[A-Z]/ },
+            lowercase: { element: document.getElementById('lowercaseReq'), regex: /[a-z]/ },
+            number: { element: document.getElementById('numberReq'), regex: /[0-9]/ }
+        };
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let allMet = true;
+
+            Object.keys(requirements).forEach(key => {
+                const req = requirements[key];
+                const met = req.regex.test(password);
+                
+                if (met) {
+                    req.element.classList.add('met');
+                    req.element.querySelector('.requirement-icon').textContent = '✓';
+                    strength++;
+                } else {
+                    req.element.classList.remove('met');
+                    req.element.querySelector('.requirement-icon').textContent = '○';
+                    allMet = false;
+                }
+            });
+
+            // Update strength bar
+            passwordStrengthBar.className = 'password-strength-bar';
+            if (password.length > 0) {
+                if (strength <= 1) {
+                    passwordStrengthBar.classList.add('weak');
+                } else if (strength <= 3) {
+                    passwordStrengthBar.classList.add('medium');
+                } else {
+                    passwordStrengthBar.classList.add('strong');
+                }
+            }
+
+            return allMet;
+        }
+
+        function validateForm() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const termsAccepted = termsCheckbox.checked;
+            const passwordStrong = checkPasswordStrength(password);
+
+            const isValid = 
+                password.length > 0 && 
+                password === confirmPassword && 
+                termsAccepted && 
+                passwordStrong;
+
+            registerBtn.disabled = !isValid;
+        }
+
+        passwordInput.addEventListener('input', validateForm);
+        confirmPasswordInput.addEventListener('input', validateForm);
+        termsCheckbox.addEventListener('change', validateForm);
+
+        // Form submission
+        const registerForm = document.getElementById('registerForm');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function showMessage(message, type = 'error') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            messageContainer.innerHTML = '';
+            messageContainer.appendChild(messageDiv);
+            
+            // Auto-remove message after 5 seconds
+            setTimeout(() => {
+                if (messageContainer.contains(messageDiv)) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(registerForm);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match');
+                return;
+            }
+
+            if (!checkPasswordStrength(password)) {
+                showMessage('Please meet all password requirements');
+                return;
+            }
+
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating account...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Registration failed');
+                }
+
+                localStorage.setItem('registeredEmail', email);
+                showMessage('Account created successfully! Please check your email to verify.', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            } catch (error) {
+                showMessage(error.message || 'An error occurred. Please try again.');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create Account';
+            }
+        });
+
+        // Terms and privacy links
+        document.querySelectorAll('.terms-checkbox a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showMessage('Terms and Privacy Policy pages coming soon!');
+            });
+        });
+    </script>
+</body>
+</html>

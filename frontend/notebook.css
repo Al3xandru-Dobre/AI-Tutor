@@ -1,0 +1,1065 @@
+/* ============================================================
+   Notebook page — "Washi & Ink"
+   Loads after tokens.css and style.css; all colors come from
+   design tokens so both Sumi (dark) and Washi (light) work.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Layout shell
+   ------------------------------------------------------------ */
+
+.notebook-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    min-width: 0;
+}
+
+/* Sidebar collapse state */
+.sidebar.collapsed {
+    margin-left: -272px;
+}
+
+/* Desktop: sidebar is fixed so the content does not reflow */
+@media (min-width: 769px) {
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: var(--z-dropdown);
+    }
+
+    .sidebar.collapsed {
+        margin-left: -272px;
+    }
+
+    .notebook-container {
+        margin-left: 272px;
+        transition: margin-left var(--transition-base);
+    }
+
+    .app-layout.sidebar-collapsed .notebook-container {
+        margin-left: 0;
+    }
+}
+
+/* ------------------------------------------------------------
+   Header — flat surface, hairline border (matches .header)
+   ------------------------------------------------------------ */
+
+.notebook-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-3) var(--space-6);
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 84px;
+}
+
+.notebook-header .header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.notebook-header h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.notebook-header h1 .icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+.notebook-header h2 {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-3);
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+
+/* Logo mark / return-to-chat link (positioned like the chat header) */
+.notebook-header .flag {
+    position: absolute;
+    left: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    z-index: 3;
+}
+
+.notebook-header .flag .logo-mark {
+    transition: opacity var(--transition-fast);
+}
+
+.notebook-header .flag:hover .logo-mark {
+    opacity: 0.85;
+}
+
+/* ------------------------------------------------------------
+   Sidebar navigation — text tabs with accent indicator
+   ------------------------------------------------------------ */
+
+.notebook-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-2);
+}
+
+.notebook-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notebook-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.notebook-nav::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 10px var(--space-3);
+    margin: 2px var(--space-1);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-2);
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                box-shadow var(--transition-fast);
+    position: relative;
+}
+
+.nav-item:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+.nav-item.active {
+    background: var(--surface-2);
+    color: var(--text-1);
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--text-3);
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+    color: var(--accent);
+}
+
+.nav-text {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.nav-item.active .nav-text {
+    font-weight: 600;
+}
+
+.nav-count {
+    background: var(--surface-3);
+    color: var(--text-2);
+    padding: 1px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+}
+
+.nav-item.active .nav-count {
+    background: var(--accent-subtle);
+    color: var(--accent);
+}
+
+/* Active page marker in the sidebar (button base styles live in style.css) */
+.notebook-btn.active {
+    background: var(--accent-subtle);
+    border-color: transparent;
+    color: var(--accent);
+}
+
+.notebook-btn.active .icon {
+    color: var(--accent);
+}
+
+/* ------------------------------------------------------------
+   Notebook sections
+   ------------------------------------------------------------ */
+
+.notebook-section {
+    display: none;
+    padding: var(--space-6) var(--space-5);
+    animation: fadeIn var(--transition-base) ease;
+}
+
+.notebook-section.active {
+    display: block;
+}
+
+/* Section headers */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.section-header h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.section-header h2 .icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+/* Primary action buttons (style.css primary language) */
+.add-btn,
+.practice-btn {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border: 1px solid transparent;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: background var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.add-btn:hover,
+.practice-btn:hover {
+    background: var(--accent-hover);
+}
+
+.add-btn .icon,
+.practice-btn .icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* ------------------------------------------------------------
+   Search / filter bar
+   ------------------------------------------------------------ */
+
+.search-bar {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.search-bar input,
+.search-bar select {
+    flex: 1;
+    padding: 10px var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-1);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.search-bar select {
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+.search-bar input:focus,
+.search-bar select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* ------------------------------------------------------------
+   Vocabulary
+   ------------------------------------------------------------ */
+
+.vocabulary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
+}
+
+.vocabulary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: border-color var(--transition-fast);
+}
+
+.vocabulary-card:hover {
+    border-color: var(--border-strong);
+}
+
+.vocab-header {
+    margin-bottom: var(--space-3);
+}
+
+.japanese-text {
+    font-family: 'Noto Sans JP', var(--font-body);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-1);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.romaji-text {
+    font-size: 13px;
+    color: var(--text-3);
+    font-style: italic;
+}
+
+.vocab-body {
+    margin-bottom: var(--space-4);
+}
+
+.english-meaning {
+    font-size: 15px;
+    color: var(--text-1);
+    font-weight: 500;
+    margin-bottom: var(--space-2);
+}
+
+.vocab-meta {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+}
+
+/* Badges — quiet chip base + single-hue vermillion JLPT ramp */
+.level-badge,
+.type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.type-badge {
+    background: var(--surface-3);
+    color: var(--text-2);
+}
+
+.level-badge.n5 { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text-2); }
+.level-badge.n4 { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.level-badge.n3 { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); }
+.level-badge.n2 { background: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent-contrast); }
+.level-badge.n1 { background: var(--accent); color: var(--accent-contrast); }
+
+.example-text {
+    font-style: italic;
+    color: var(--text-2);
+    font-size: 13px;
+    margin-bottom: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+}
+
+.vocab-notes {
+    font-size: 12px;
+    color: var(--text-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--accent-subtle);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+}
+
+.vocab-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+}
+
+/* Ghost icon buttons */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.action-btn .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.action-btn:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+}
+
+.action-btn.edit:hover {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.action-btn.practice:hover {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.action-btn.delete:hover {
+    background: var(--error-subtle);
+    border-color: var(--error);
+    color: var(--error);
+}
+
+/* ------------------------------------------------------------
+   Exercise categories
+   ------------------------------------------------------------ */
+
+.exercise-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.category-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6) var(--space-5);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.category-card:hover {
+    border-color: var(--border-strong);
+}
+
+.category-icon {
+    font-family: var(--font-display);
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: var(--space-4);
+    color: var(--accent);
+}
+
+.category-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.01em;
+}
+
+.category-card p {
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: var(--space-4);
+}
+
+.difficulty-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-radius: var(--radius-xs);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+   Progress chart panel (stat cards live in review-dashboard.css)
+   ------------------------------------------------------------ */
+
+.progress-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-top: var(--space-6);
+}
+
+.progress-chart h3 {
+    color: var(--text-1);
+    margin-bottom: var(--space-4);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+   Study guides
+   ------------------------------------------------------------ */
+
+.guide-categories {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+}
+
+.guide-category {
+    padding: 6px var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+}
+
+.guide-category:hover {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+}
+
+.guide-category.active {
+    background: var(--accent-subtle);
+    border-color: transparent;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.guides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-4);
+}
+
+.guide-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: border-color var(--transition-fast);
+}
+
+.guide-card:hover {
+    border-color: var(--border-strong);
+}
+
+.guide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.guide-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+}
+
+.guide-category-badge {
+    background: var(--surface-3);
+    color: var(--text-2);
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.guide-content p {
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 var(--space-3);
+}
+
+.guide-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.guide-meta .date {
+    color: var(--text-3);
+    font-size: 12px;
+}
+
+/* ------------------------------------------------------------
+   Reminders
+   ------------------------------------------------------------ */
+
+.reminder-schedule {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.schedule-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+}
+
+.schedule-card h3 {
+    color: var(--text-1);
+    margin-bottom: var(--space-4);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.goal-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.goal-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.goal-item label {
+    color: var(--text-2);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.week-schedule {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.day-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+}
+
+.day-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-1);
+}
+
+.day-task {
+    color: var(--text-2);
+    font-size: 14px;
+}
+
+/* ------------------------------------------------------------
+   Modals (overlay/entrance mirror style.css; .active visibility
+   toggled by JS)
+   ------------------------------------------------------------ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-base),
+                visibility var(--transition-base);
+    padding: var(--space-5);
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-2);
+    animation: slideUp var(--transition-base) ease-out;
+}
+
+.modal-header {
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    color: var(--text-1);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-3);
+    font-size: 26px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    line-height: 1;
+    transition: background var(--transition-fast),
+                color var(--transition-fast);
+}
+
+.modal-close:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+.modal-body {
+    padding: var(--space-5);
+}
+
+/* Forms (style.css input language) */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--text-1);
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-1);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    margin-top: var(--space-5);
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 10px var(--space-5);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--surface-2);
+    color: var(--text-1);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+}
+
+/* ------------------------------------------------------------
+   Recent exercises & reminders
+   ------------------------------------------------------------ */
+
+.recent-exercises,
+.upcoming-reminders {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-top: var(--space-6);
+}
+
+.recent-exercises h3,
+.upcoming-reminders h3 {
+    color: var(--text-1);
+    margin-bottom: var(--space-4);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.exercise-list,
+.reminder-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* ------------------------------------------------------------
+   Loading, empty and fallback states
+   ------------------------------------------------------------ */
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--space-7);
+    color: var(--text-3);
+}
+
+.loading::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: var(--space-3);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Full-screen loading overlay created by inline JS */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--overlay);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    color: var(--text-2);
+    font-size: 14px;
+    z-index: var(--z-toast);
+}
+
+.empty-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-7) var(--space-5);
+    color: var(--text-3);
+    font-size: 14px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--space-7) var(--space-5);
+    color: var(--text-3);
+}
+
+.empty-state h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: var(--space-3);
+}
+
+.empty-state p {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+    .notebook-container {
+        padding: 0;
+    }
+
+    .notebook-header {
+        padding: var(--space-4) var(--space-5);
+        padding-left: 60px;  /* space for the sidebar toggle */
+        padding-right: 60px; /* space for the theme toggle */
+    }
+
+    .notebook-header h1 {
+        font-size: 17px;
+    }
+
+    .notebook-header .flag {
+        left: 44px;
+    }
+
+    .notebook-section {
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+        justify-content: center;
+    }
+
+    .search-bar {
+        flex-direction: column;
+    }
+
+    .vocabulary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .exercise-categories {
+        grid-template-columns: 1fr;
+    }
+
+    .reminder-schedule {
+        grid-template-columns: 1fr;
+    }
+
+    .guide-categories {
+        justify-content: center;
+    }
+
+    .guides-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .nav-item {
+        padding: 10px var(--space-3);
+        margin: 2px var(--space-1);
+    }
+
+    .nav-text {
+        font-size: 13px;
+    }
+}
